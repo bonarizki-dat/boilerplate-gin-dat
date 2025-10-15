@@ -5,10 +5,10 @@ import (
 )
 
 type Example struct {
-	Id        int        `json:"id"`
+	Id        int        `json:"id" gorm:"primaryKey"`
 	Data      string     `json:"data" binding:"required"`
-	CreatedAt *time.Time `json:"created_at,string,omitempty"`
-	UpdatedAt *time.Time `json:"updated_at_at,string,omitempty"`
+	CreatedAt *time.Time `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at_at"`
 }
 
 // TableName is Database TableName of this model

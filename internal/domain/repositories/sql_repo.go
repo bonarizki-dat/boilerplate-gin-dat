@@ -1,8 +1,8 @@
 package repositories
 
 import (
-	"github.com/ponyjackal/go-gin-boilerplate/internal/adapters/database"
-	"github.com/ponyjackal/go-gin-boilerplate/pkg/logger"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/adapters/database"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 )
 
 func Save(model interface{}) interface{} {

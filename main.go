@@ -3,11 +3,11 @@ package main
 import (
 	"time"
 
-	"github.com/ponyjackal/go-gin-boilerplate/internal/adapters/database"
-	"github.com/ponyjackal/go-gin-boilerplate/internal/adapters/database/migrations"
-	"github.com/ponyjackal/go-gin-boilerplate/internal/app/routers"
-	"github.com/ponyjackal/go-gin-boilerplate/pkg/config"
-	"github.com/ponyjackal/go-gin-boilerplate/pkg/logger"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/adapters/database"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/adapters/database/migrations"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/routers"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 
 	"github.com/spf13/viper"
 )

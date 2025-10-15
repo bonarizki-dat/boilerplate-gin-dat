@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/ponyjackal/go-gin-boilerplate/pkg/logger"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/spf13/viper"
 )
 

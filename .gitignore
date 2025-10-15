@@ -1,20 +1,57 @@
-# Binaries for programs and plugins
+# =========================
+# Environment & Config
+# =========================
 .env
+*.log
+
+# =========================
+# Go Binaries & Build Outputs
+# =========================
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-
-# Test binary, built with `go test -c`
 *.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+*.coverprofile
+*.prof
+*.pprof
+main
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-.idea/
+# =========================
+# Dependencies
+# =========================
 vendor/
+
+# =========================
+# Editor & IDE
+# =========================
+.idea/
 .vscode/
+.cursor/
+*.swp
+
+# =========================
+# Temporary & Build Folders
+# =========================
 tmp/
+dist/
+build/
+
+# =========================
+# OS Generated Files
+# =========================
+.DS_Store
+Thumbs.db
+
+
+# =========================
+# Secrets
+# =========================
+secrets/
+
+# =========================
+# docker file .yml
+# =========================
+*.yml

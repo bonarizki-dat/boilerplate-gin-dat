@@ -1,8 +1,8 @@
 package routers
 
 import (
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/middlewares"
 	"github.com/gin-gonic/gin"
-	"github.com/ponyjackal/go-gin-boilerplate/internal/app/middlewares"
 	"github.com/spf13/viper"
 )
 
