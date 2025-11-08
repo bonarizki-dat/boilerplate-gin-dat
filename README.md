@@ -1,292 +1,763 @@
-# Go Boilerplate
-An API boilerplate written in Golang with Gin Framework and Gorm 
-### Motivation
-Write restful API with fast development and developer friendly
+<div align="center">
 
-## Table of Contents
-- [Motivation](#motivation)
-- [Configuration Manage](#configuration-manage)
-  - [ENV Manage](#env-manage)
-  - [Server Configuration](#server-configuration)
-  - [Database Configuration](#database-configuration)
-  - [PgAdmin](#pg-admin)
-- [Installation](#installation)
-  - [Local Setup Instruction](#local-setup-instruction)
-  - [Develop Application in Docker with Live Reload](#develop-application-in-docker-with-live-reload)
-- [Middlewares](#middlewares)
-- [Boilerplate Structure](#boilerplate-structure)
-- [Code Examples](#examples)
-- [Let's Build an API](#lets-build-an-api)
-- [Deployment](#deployment)
-  - [Container Development Build](#container-development-build)
-  - [Container Production Build and Up](#container-production-build-and-up)
-- [Useful Commands](#useful-commands)
-- [ENV YAML Configure](#env-yaml-configure)
-- [Use Packages](#use-packages)
+# 🚀 Go Gin Enterprise Boilerplate
 
-### Configuration Manage
-#### ENV Manage
+**Production-Ready Starter Kit for Building Scalable RESTful APIs**
 
-- Default ENV Configuration Manage from `.env`. sample file `.env.example`
-```text
-# Server Configuration
-SECRET=h9wt*pasj6796j##w(w8=xaje8tpi6h*r&hzgrz065u&ed+k2)
-DEBUG=True # `False` in Production
-ALLOWED_HOSTS=0.0.0.0
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![Gin Framework](https://img.shields.io/badge/Gin-v1.11-00ADD8?style=flat)](https://github.com/gin-gonic/gin)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](docs/CODING_STANDARDS.md)
+
+[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Architecture](#-architecture) • [Testing](#-testing)
+
+</div>
+
+---
+
+## 📖 What is This?
+
+**This is not just another boilerplate** - This is a **company-standard starter kit** designed to accelerate API development while maintaining high code quality, consistency, and best practices across all projects.
+
+### 🎯 Purpose
+
+This boilerplate serves as the **foundation for all Go API projects** in our organization. It eliminates the need to set up authentication, database connections, testing infrastructure, and project structure from scratch for every new project.
+
+### 💡 Why This Boilerplate?
+
+| Problem | Solution |
+|---------|----------|
+| ❌ Starting from zero for each project | ✅ Production-ready foundation with auth, DB, testing |
+| ❌ Inconsistent code across projects | ✅ Enforced coding standards and design patterns |
+| ❌ Poor documentation | ✅ 5000+ lines of comprehensive documentation |
+| ❌ No testing examples | ✅ Complete test suite with examples |
+| ❌ Security vulnerabilities | ✅ Built-in security best practices |
+| ❌ AI agents breaking conventions | ✅ AI-friendly docs with critical rules |
+
+### 🎁 What You Get
+
+Start your next API project with:
+- ✅ **JWT Authentication** - Login, register, protected routes ready to go
+- ✅ **Clean Architecture** - Proven layered structure (Controllers → Services → Repositories)
+- ✅ **Complete Documentation** - 5000+ lines covering every aspect
+- ✅ **Testing Infrastructure** - Unit tests, integration tests, examples included
+- ✅ **Security Built-in** - SQL injection prevention, password hashing, token security
+- ✅ **Database Ready** - PostgreSQL with GORM, migrations, master-replica support
+- ✅ **Docker Support** - Development and production configurations
+- ✅ **AI-Ready** - Comprehensive guides for AI-assisted development
+
+**Time to First API:** ~5 minutes instead of days 🚀
+
+---
+
+## ✨ Features
+
+### Core Features
+
+- 🔐 **JWT Authentication** - Secure login/register endpoints with token-based auth
+- 🏗️ **Clean Architecture** - Layered design with clear separation of concerns
+- 🗄️ **GORM Integration** - PostgreSQL with master-replica configuration
+- ✅ **Request Validation** - Built-in validation using go-playground/validator
+- 📝 **Structured Logging** - Logrus integration with custom formatting
+- 🔌 **Middleware Support** - CORS, Auth middleware, easily extensible
+- 🗃️ **Database Migrations** - SQL migrations and AutoMigrate support
+- 🐳 **Docker Support** - Dev and prod Docker configurations with live reload
+- 🧪 **Comprehensive Testing** - Service and controller test examples
+- 📊 **DataTables Integration** - Server-side pagination, search, and sorting
+
+### What Makes This Different
+
+- 📚 **World-Class Documentation** - 5000+ lines covering standards, patterns, and AI guides
+- 🤖 **AI-Friendly** - Specialized docs for AI-assisted development ([docs/00_AI_CRITICAL_RULES.md](docs/00_AI_CRITICAL_RULES.md))
+- 🛡️ **Security First** - SQL injection prevention, secure password handling, token security
+- 🎯 **Battle-Tested Patterns** - Proven in production environments
+- 📏 **Enforced Standards** - File size limits, function limits, test coverage requirements
+- 🧩 **Modular Design** - Easy to extend, hard to break
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-org/go-gin-boilerplate.git
+cd go-gin-boilerplate
+
+# 2. Copy environment file
+cp .env.example .env
+
+# 3. Install dependencies
+go get .
+
+# 4. Run the application
+go run main.go
+
+# ✅ Visit: http://localhost:8000/health
+```
+
+**Using Docker:**
+```bash
+# Development with live reload
+make dev
+
+# Production build
+make production
+```
+
+**First API Call:**
+```bash
+# Register a user
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "SecurePass123!"
+  }'
+
+# ✅ You now have a working API with authentication!
+```
+
+---
+
+## 📚 Documentation
+
+> **🎯 For New Developers:** Start with the documentation to understand the architecture and coding standards.
+
+### 📖 Reading Guide
+
+**For AI Agents - START HERE ⚠️**
+
+If you're an AI agent or using AI-assisted development:
+
+1. **[docs/00_AI_CRITICAL_RULES.md](docs/00_AI_CRITICAL_RULES.md)** ⚠️ **READ FIRST** (100 lines)
+   - Non-negotiable patterns (struct-based, response utilities)
+   - Absolute rules that MUST be followed
+   - **Skip this = Code rejected**
+
+2. **[docs/AI_QUICK_REFERENCE.md](docs/AI_QUICK_REFERENCE.md)** (405 lines)
+   - Quick templates for controllers, services, repositories
+   - The 5 Commandments (size limits)
+   - Testing checklist
+
+3. **Use as Reference:**
+   - [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) - Complete coding standards
+   - [docs/DESIGN_PATTERNS.md](docs/DESIGN_PATTERNS.md) - Architecture patterns
+
+**For Human Developers**
+
+| Document | Size | Purpose |
+|----------|------|---------|
+| [docs/README.md](docs/README.md) | Quick | Documentation navigation guide |
+| [docs/00_AI_CRITICAL_RULES.md](docs/00_AI_CRITICAL_RULES.md) | 100 lines | Critical rules summary |
+| [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) | 1955 lines | Comprehensive coding standards |
+| [docs/DESIGN_PATTERNS.md](docs/DESIGN_PATTERNS.md) | 2479 lines | Architecture and design patterns |
+| [TESTING.md](TESTING.md) | Full | Complete testing guide |
+| [tests/README.md](tests/README.md) | Quick | Test organization |
+
+**Quick Links:**
+- 🏗️ [Architecture Overview](#-architecture)
+- 🔐 [Authentication Guide](#-authentication-endpoints)
+- 🧪 [Testing Guide](TESTING.md)
+- 🗄️ [Database Migrations](internal/adapters/database/migrations/sql/README.md)
+- 🐳 [Docker Setup](#-docker-development)
+
+---
+
+## 🏗️ Architecture
+
+This boilerplate follows **Clean Architecture** principles with a layered approach:
+
+```
+┌─────────────────────────────────────────┐
+│           HTTP Request                  │
+└──────────────┬──────────────────────────┘
+               │
+        ┌──────▼──────┐
+        │  Router     │  Route definitions
+        └──────┬──────┘
+               │
+        ┌──────▼──────────┐
+        │  Middleware     │  Auth, CORS, etc.
+        └──────┬──────────┘
+               │
+        ┌──────▼──────────┐
+        │  Controllers    │  HTTP handlers (thin layer)
+        │  - Validate     │  Max 50 lines per function
+        │  - Call Service │
+        │  - Return JSON  │
+        └──────┬──────────┘
+               │
+        ┌──────▼──────────┐
+        │  Services       │  Business logic (fat layer)
+        │  - Validation   │  Max 100 lines per function
+        │  - Processing   │  Struct-based with DI
+        │  - Orchestrate  │
+        └──────┬──────────┘
+               │
+        ┌──────▼──────────┐
+        │  Repositories   │  Data access (CRUD only)
+        │  - Create       │  Function-based
+        │  - Read         │  Return models
+        │  - Update       │
+        │  - Delete       │
+        └──────┬──────────┘
+               │
+        ┌──────▼──────────┐
+        │  Database       │  PostgreSQL + GORM
+        └─────────────────┘
+```
+
+### Directory Structure
+
+```
+project/
+├── cmd/                        # Commands (migrate, seeder)
+├── internal/                   # Private application code
+│   ├── adapters/              # External adapters (DB, cache)
+│   ├── app/
+│   │   ├── controllers/       # HTTP handlers (struct-based)
+│   │   ├── dto/               # Data Transfer Objects
+│   │   ├── middlewares/       # Gin middlewares
+│   │   ├── routers/           # Route definitions
+│   │   └── services/          # Business logic (struct-based)
+│   └── domain/
+│       ├── models/            # Database entities (GORM)
+│       └── repositories/      # Data access layer
+├── pkg/                       # Public reusable packages
+│   ├── config/               # Configuration management
+│   ├── logger/               # Logging infrastructure
+│   ├── types/                # Shared types
+│   └── utils/                # Utility functions
+│       └── response.go       # MUST use for all responses
+├── tests/                    # ALL tests go here
+│   ├── unit/                 # Unit tests
+│   │   ├── controllers/
+│   │   ├── services/
+│   │   └── repositories/
+│   ├── integration/          # Integration tests
+│   └── fixtures/             # Test data
+├── docs/                     # Documentation
+└── main.go                   # Application entry point
+```
+
+**Key Principles:**
+- ✅ Controllers are thin (validation + call service)
+- ✅ Services contain all business logic
+- ✅ Repositories only do CRUD operations
+- ✅ No circular dependencies
+- ✅ Dependency injection via constructors
+- ❌ Controllers never access database directly
+- ❌ Repositories never contain business logic
+
+---
+
+## 🔐 API Endpoints
+
+### Authentication Endpoints
+
+#### Register a New User
+
+```bash
+POST /auth/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "SecurePass123!"
+}
+
+# Response (201 Created)
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "token_type": "Bearer"
+  },
+  "errors": null
+}
+```
+
+#### Login
+
+```bash
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "SecurePass123!"
+}
+
+# Response (200 OK)
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "token_type": "Bearer"
+  },
+  "errors": null
+}
+```
+
+### Protected Routes
+
+Routes under `/api/*` require JWT authentication:
+
+```bash
+GET /api/profile
+Authorization: Bearer <your-jwt-token>
+
+# Response (200 OK)
+{
+  "success": true,
+  "message": "Profile retrieved successfully",
+  "data": {
+    "user_id": 1
+  },
+  "errors": null
+}
+```
+
+### Public Endpoints
+
+- `GET /health` - Health check endpoint
+- `GET /datatables` - DataTables example with pagination/search
+
+**Standard Response Format:**
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... },
+  "errors": null
+}
+```
+
+---
+
+## 🧪 Testing
+
+Run the complete test suite:
+
+```bash
+# Run all tests
+go test ./tests/...
+
+# Run with coverage
+go test -cover ./tests/...
+
+# Generate HTML coverage report
+go test -coverprofile=coverage.out ./tests/...
+go tool cover -html=coverage.out
+
+# Run specific test package
+go test ./tests/unit/services/...
+
+# Run with race detector
+go test -race ./tests/...
+
+# Run with verbose output
+go test -v ./tests/...
+```
+
+**Test Coverage Goals:**
+- Services: 70% minimum (85% target)
+- Repositories: 70% minimum
+- Controllers: 60% minimum
+- Utils: 80% minimum
+
+**Test Structure:**
+```
+tests/
+├── unit/
+│   ├── controllers/    # Controller HTTP tests
+│   ├── services/       # Business logic tests
+│   ├── repositories/   # Data access tests
+│   └── utils/          # Utility tests
+├── integration/
+│   ├── api/           # End-to-end API tests
+│   └── database/      # Database integration tests
+└── fixtures/          # Test data (JSON, CSV)
+```
+
+**Example Test:**
+```go
+// tests/unit/services/auth_service_test.go
+package services_test
+
+import (
+    "testing"
+    "github.com/your-org/project/internal/app/services"
+)
+
+func TestAuthService_ValidateToken(t *testing.T) {
+    service := services.NewAuthService()
+
+    tests := []struct {
+        name    string
+        token   string
+        wantErr bool
+    }{
+        {"Valid token", "valid.jwt.token", false},
+        {"Invalid token", "invalid", true},
+        {"Empty token", "", true},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            _, err := service.ValidateToken(tt.token)
+            if (err != nil) != tt.wantErr {
+                t.Errorf("ValidateToken() error = %v, wantErr %v", err, tt.wantErr)
+            }
+        })
+    }
+}
+```
+
+See [TESTING.md](TESTING.md) for comprehensive testing guide.
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create `.env` file from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+**Essential Configuration:**
+
+```env
+# Server
+SECRET=your-super-secret-jwt-key-change-this
+DEBUG=True                    # Set False in production
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8000
 
-# Database Configuration
-MASTER_DB_NAME=test_pg_go
-MASTER_DB_USER=mamun
-MASTER_DB_PASSWORD=123
-MASTER_DB_HOST=postgres_db
+# Database (Master)
+MASTER_DB_NAME=your_database
+MASTER_DB_USER=your_user
+MASTER_DB_PASSWORD=your_password
+MASTER_DB_HOST=localhost      # Use postgres_db for Docker
 MASTER_DB_PORT=5432
-MASTER_DB_LOG_MODE=True # `False` in Production
-MASTER_SSL_MODE=disable
+MASTER_DB_LOG_MODE=True       # Set False in production
 
-REPLICA_DB_NAME=test_pg_go
-REPLICA_DB_USER=mamun
-REPLICA_DB_PASSWORD=123
+# Database (Replica) - Optional
+REPLICA_DB_NAME=your_database
+REPLICA_DB_USER=your_user
+REPLICA_DB_PASSWORD=your_password
 REPLICA_DB_HOST=localhost
 REPLICA_DB_PORT=5432
-REPLICA_DB_LOG_MODE=True # `False` in Production
-REPLICA_SSL_MODE=disable
-```
-- Server `DEBUG` set `False` in Production
-- Database Logger `MASTER_DB_LOG_MODE` and `REPLICA_DB_LOG_MODE`  set `False` in production
-- If ENV Manage from YAML file add a config.yml file and configuration [db.go](config/db.go) and [server.go](config/server.go). See More [ENV YAML Configure](#env-yaml-configure)
-
-#### Server Configuration
-- Use [Gin](https://github.com/gin-gonic/gin) Web Framework
-
-#### Database Configuration
-- Use [GORM](https://github.com/go-gorm/gorm) as an ORM
-- Use database `MASTER_DB_HOST` value set as `localhost` for local development, and use `postgres_db` for docker development 
-#### PG Admin
-- Check  PG Admin on [http://0.0.0.0:5050/browser/](http://0.0.0.0:5050/browser/)
-- Login with Credential Email `admin@admin.com` Password `root`
-- Connect Database Host as `postgres_db`, DB Username and Password as per `.env` set
-- Note: if not configure `.env`, default Username `mamun` and password `123`
-
-### Installation
-#### Local Setup Instruction
-Follow these steps:
-- Copy [.env.example](.env.example) as `.env` and configure necessary values
-- To add all dependencies for a package in your module `go get .` in the current directory
-- Locally run `go run main.go` or `go build main.go` and run `./main`
-- Check Application health available on [0.0.0.0:8000/health](http://0.0.0.0:8000/health)
-
-#### Develop Application in Docker with Live Reload
-Follow these steps:
-- Make sure install the latest version of docker and docker-compose
-- Docker Installation for your desire OS https://docs.docker.com/engine/install/ubuntu/
-- Docker Composer Installation https://docs.docker.com/compose/install/
-- Run and Develop `make dev`
-- Check Application health available on [0.0.0.0:8000/health](http://0.0.0.0:8000/health)
-
-### Middlewares
-- Use Gin CORSMiddleware
-```go
-router := gin.New()
-router.Use(gin.Logger())
-router.Use(gin.Recovery())
-router.Use(middleware.CORSMiddleware())
 ```
 
-### Boilerplate Structure
-<pre>├── <font color="#3465A4"><b>config</b></font>
-│   ├── config.go
-│   ├── db.go
-│   └── server.go
-├── <font color="#3465A4"><b>controllers</b></font>
-│   └── example_controller.go
-├── docker-compose-dev.yml
-├── docker-compose-prod.yml
-├── Dockerfile
-├── Dockerfile-dev
-├── go.mod
-├── go.sum
-├── <font color="#3465A4"><b>helpers</b></font>
-│   ├── response.go
-│   └── search.go
-├── <font color="#3465A4"><b>infra</b></font>
-│   ├── <font color="#3465A4"><b>database</b></font>
-│   │   └── database.go
-│   └── <font color="#3465A4"><b>logger</b></font>
-│       └── logger.go
-├── LICENSE
-├── main.go
-├── Makefile
-├── <font color="#3465A4"><b>migrations</b></font>
-│   └── migration.go
-├── <font color="#3465A4"><b>models</b></font>
-│   └── example_model.go
-├── README.md
-├── <font color="#3465A4"><b>repository</b></font>
-│   └── sql_repo.go
-├── <font color="#3465A4"><b>routers</b></font>
-│   ├── index.go
-│   ├── <font color="#3465A4"><b>middleware</b></font>
-│   │   └── cors.go
-│   └── router.go
-</pre>
+**Security Notes:**
+- ⚠️ Change `SECRET` in production
+- ⚠️ Set `DEBUG=False` in production
+- ⚠️ Set `MASTER_DB_LOG_MODE=False` in production
+- ⚠️ Never commit `.env` to version control
 
-### Examples
-- More Example [gin-boilerplate-examples](https://github.com/akmamun/gin-boilerplate-examples)
+### Database Configuration
 
-### Let's Build an API
-
-1. [models](models) folder add a new file name `example_model.go`
-
-```go
-package models
-
-import (
-	"time"
-)
-
-type Example struct {
-	Id        int        `json:"id"`
-	Data      string     `json:"data" binding:"required"`
-	CreatedAt *time.Time `json:"created_at,string,omitempty"`
-	UpdatedAt *time.Time `json:"updated_at_at,string,omitempty"`
-}
-// TableName is Database Table Name of this model
-func (e *Example) TableName() string {
-	return "examples"
-}
+**Local Development:**
+```env
+MASTER_DB_HOST=localhost
 ```
-2. Add Model to [migration](pkg/database/migration.go)
+
+**Docker Development:**
+```env
+MASTER_DB_HOST=postgres_db
+```
+
+**Master-Replica Setup:**
+- Master for writes (INSERT, UPDATE, DELETE)
+- Replica for reads (SELECT)
+- Automatic failover support
+
+### JWT Configuration
+
+```env
+SECRET=your-jwt-secret-key-min-32-characters
+```
+
+- Token expiry: 24 hours (configurable in `auth_service.go`)
+- Algorithm: HS256
+- Claims: user_id, email, exp, iat
+
+---
+
+## 🐳 Docker Development
+
+### Development with Live Reload
+
+```bash
+# Start development environment
+make dev
+
+# This starts:
+# - PostgreSQL database (port 5432)
+# - PG Admin (port 5050)
+# - Go API with live reload (port 8000)
+```
+
+**Access Services:**
+- API: [http://localhost:8000](http://localhost:8000)
+- PG Admin: [http://localhost:5050](http://localhost:5050)
+  - Email: `admin@admin.com`
+  - Password: `root`
+  - DB Host: `postgres_db`
+
+### Production Build
+
+```bash
+# Build and run production containers
+make production
+
+# Build only
+make build
+
+# Clean up
+make clean
+```
+
+**Docker Commands:**
+- `make dev` - Development with live reload (Air)
+- `make build` - Build production container
+- `make production` - Build and run production
+- `make clean` - Remove all containers and images
+
+---
+
+## 🗄️ Database Migrations
+
+### Development Approach
+
+Uses GORM AutoMigrate for quick iteration:
+
 ```go
-package migrations
-
-import (
-	"gin-boilerplate/infra/database"
-	"gin-boilerplate/models"
-)
-
-// Migrate Add list of model add for migrations
+// internal/adapters/database/migrations/migration.go
 func Migrate() {
-	var migrationModels = []interface{}{&models.Example{}}
-	err := database.DB.AutoMigrate(migrationModels...)
-	if err != nil {
-		return
-	}
-}
-
-```
-3. [controller](controllers) folder add a file `example_controller.go`
-- Create API Endpoint 
-- Write Database Operation in Repository and use them from controller
-```go
-package controllers
-
-import (
-  "gin-boilerplate/models"
-  "gin-boilerplate/repository"
-  "github.com/gin-gonic/gin"
-  "net/http"
-)
-
-func GetData(ctx *gin.Context) {
-  var example []*models.Example
-  repository.Get(&example)
-  ctx.JSON(http.StatusOK, &example)
-
-}
-func Create(ctx *gin.Context) {
-  example := new(models.Example)
-  repository.Save(&example)
-  ctx.JSON(http.StatusOK, &example)
-}
-```
-4. [routers](routers) folder add a file `example.go`
-```go
-package routers
-
-import (
-  "gin-boilerplate/controllers"
-  "github.com/gin-gonic/gin"
-  "net/http"
-)
-
-func RegisterRoutes(route *gin.Engine) {
-  route.GET("/health", func(ctx *gin.Context) { ctx.JSON(http.StatusOK, gin.H{"live": "ok"}) })
-  //added new
-  route.GET("/v1/example/", controllers.GetData)
-  route.POST("/v1/example/", controllers.Create)
-
-  //Add All route
-  //TestRoutes(route)
-}
-```
-- Congratulation, your new endpoint `0.0.0.0:8000/v1/example/`
-
-### Deployment
-#### Container Development Build
-- Run `make build`
-
-#### Container Production Build and Up
-- Run `make production`
-
-#### ENV Yaml Configure
-```yaml
-database:
-  driver: "postgres"
-  dbname: "test_pg_go"
-  username: "mamun"
-  password: "123"
-  host: "postgres_db" # use `localhost` for local development
-  port: "5432"
-  ssl_mode: disable
-  log_mode: false
-
-server:
-  host: "0.0.0.0"
-  port: "8000"
-  secret: "secret"
-  allow_hosts: "localhost"
-  debug: false #use `false` in production
-  request:
-    timeout: 100
-```
-- [Server Config](config/server.go)
-```go
-func ServerConfig() string {
-viper.SetDefault("server.host", "0.0.0.0")
-viper.SetDefault("server.port", "8000")
-appServer := fmt.Sprintf("%s:%s", viper.GetString("server.host"), viper.GetString("server.port"))
-return appServer
-}
-```
-- [DB Config](config/db.go)
-```go
-func DbConfiguration() string {
-	
-dbname := viper.GetString("database.dbname")
-username := viper.GetString("database.username")
-password := viper.GetString("database.password")
-host := viper.GetString("database.host")
-port := viper.GetString("database.port")
-sslMode := viper.GetString("database.ssl_mode")
-
-dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-host, username, password, dbname, port, sslMode)
-return dsn
+    models := []interface{}{
+        &models.User{},
+        // Add your models here
+    }
+    database.DB.AutoMigrate(models...)
 }
 ```
 
-### Useful Commands
+### Production Approach
 
-- `make dev`: make dev for development work
-- `make build`: make build container
-- `make production`: docker production build and up
-- `clean`: clean for all clear docker images
+Uses SQL migration files with `golang-migrate`:
 
-### Use Packages
-- [Viper](https://github.com/spf13/viper) - Go configuration with fangs.
-- [Gorm](https://github.com/go-gorm/gorm) - The fantastic ORM library for Golang
-- [Logger](https://github.com/sirupsen/logrus) - Structured, pluggable logging for Go.
-- [Air](https://github.com/cosmtrek/air) - Live reload for Go apps (Docker Development)
+```bash
+# Install golang-migrate
+brew install golang-migrate  # macOS
+# or
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
+# Run migrations
+export DATABASE_URL="postgres://user:pass@localhost:5432/dbname?sslmode=disable"
+migrate -database ${DATABASE_URL} -path internal/adapters/database/migrations/sql up
+
+# Rollback last migration
+migrate -database ${DATABASE_URL} -path internal/adapters/database/migrations/sql down 1
+
+# Create new migration
+migrate create -ext sql -dir internal/adapters/database/migrations/sql -seq create_new_table
+```
+
+**Migration Files:**
+```
+internal/adapters/database/migrations/sql/
+├── 000001_create_users_table.up.sql
+├── 000001_create_users_table.down.sql
+├── 000002_create_posts_table.up.sql
+└── 000002_create_posts_table.down.sql
+```
+
+See [migrations README](internal/adapters/database/migrations/sql/README.md) for detailed guide.
+
+---
+
+## 🚀 Deployment
+
+### Prerequisites
+
+- Go 1.24+
+- PostgreSQL 13+
+- Docker (optional)
+
+### Production Checklist
+
+```bash
+□ Update .env with production values
+□ Set DEBUG=False
+□ Set strong SECRET key (min 32 chars)
+□ Set MASTER_DB_LOG_MODE=False
+□ Configure SSL for database
+□ Run database migrations
+□ Set up monitoring and logging
+□ Configure reverse proxy (nginx)
+□ Set up SSL/TLS certificates
+□ Configure CORS for your domain
+```
+
+### Build for Production
+
+```bash
+# Build binary
+go build -o api main.go
+
+# Run binary
+./api
+
+# Or use Docker
+make production
+```
+
+### Environment Variables (Production)
+
+```env
+DEBUG=False
+SECRET=super-long-random-secret-key-min-32-chars
+MASTER_DB_LOG_MODE=False
+MASTER_SSL_MODE=require
+```
+
+---
+
+## 📦 Tech Stack
+
+### Core Framework
+- **[Gin](https://github.com/gin-gonic/gin)** - High-performance HTTP web framework
+- **[GORM](https://github.com/go-gorm/gorm)** - Fantastic ORM library for Golang
+- **[Viper](https://github.com/spf13/viper)** - Configuration management
+
+### Authentication & Security
+- **[JWT-Go](https://github.com/golang-jwt/jwt)** - JSON Web Token implementation
+- **[Bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt)** - Password hashing
+
+### Validation & Logging
+- **[Validator](https://github.com/go-playground/validator)** - Struct validation
+- **[Logrus](https://github.com/sirupsen/logrus)** - Structured logging
+
+### Testing
+- **[Testify](https://github.com/stretchr/testify)** - Testing toolkit with assertions
+
+### Development Tools
+- **[Air](https://github.com/cosmtrek/air)** - Live reload for Go apps
+- **[golang-migrate](https://github.com/golang-migrate/migrate)** - Database migrations
+
+### Custom Libraries
+- **[Datatables-Gin](https://github.com/bonarizki-dat/Datatables-Gin)** - DataTables integration
+
+---
+
+## 🎯 Project Standards
+
+### The 5 Commandments
+
+```
+1. 📏 File >300 lines?        → STOP. Split it.
+2. 📐 Function >100 lines?    → STOP. Extract functions.
+3. 🧪 No tests?               → STOP. Write tests first.
+4. ❌ Error ignored (_, _)?   → STOP. Handle it.
+5. 📝 Exported without docs?  → STOP. Document it.
+```
+
+**Violate = Code Rejected**
+
+### Code Quality Standards
+
+- ✅ All controllers MUST be struct-based (NOT standalone functions)
+- ✅ All services MUST be struct-based (NOT standalone functions)
+- ✅ All responses MUST use `utils.Ok/Created/etc` (NOT `c.JSON`)
+- ✅ All tests MUST be in `tests/` directory (NOT co-located)
+- ✅ File size MAX 300 lines
+- ✅ Function size MAX 100 lines
+- ✅ Test coverage MIN 70% for services
+
+See [docs/00_AI_CRITICAL_RULES.md](docs/00_AI_CRITICAL_RULES.md) for complete rules.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow our standards:
+
+**Before Contributing:**
+1. Read [docs/00_AI_CRITICAL_RULES.md](docs/00_AI_CRITICAL_RULES.md)
+2. Read [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md)
+3. Check existing issues and PRs
+
+**Contribution Process:**
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Follow coding standards (struct-based, response utilities, etc.)
+4. Write tests (minimum 70% coverage)
+5. Commit with clear messages
+6. Push to branch
+7. Open Pull Request
+
+**Pull Request Requirements:**
+- ✅ All tests passing
+- ✅ Code follows standards
+- ✅ Documentation updated
+- ✅ No linter errors
+- ✅ Test coverage maintained
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 💬 Support
+
+**Issues & Questions:**
+- 🐛 [Report Bug](https://github.com/your-org/go-gin-boilerplate/issues)
+- 💡 [Request Feature](https://github.com/your-org/go-gin-boilerplate/issues)
+- 📖 [Read Documentation](docs/README.md)
+
+**Resources:**
+- [Documentation Guide](docs/README.md)
+- [Critical Rules](docs/00_AI_CRITICAL_RULES.md)
+- [Coding Standards](docs/CODING_STANDARDS.md)
+- [Design Patterns](docs/DESIGN_PATTERNS.md)
+- [Testing Guide](TESTING.md)
+
+---
+
+## ⭐ Acknowledgments
+
+- Gin Framework team for the excellent HTTP framework
+- GORM team for the powerful ORM
+- All contributors to the open-source packages used
+
+---
+
+<div align="center">
+
+**Built with ❤️ by the team**
+
+**[⬆ Back to Top](#-go-gin-enterprise-boilerplate)**
+
+</div>
