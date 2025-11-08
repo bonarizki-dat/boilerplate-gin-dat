@@ -140,6 +140,49 @@ logger.Errorf("failed to create user: %v", err)
 logger.Warnf("approaching rate limit: %d/%d", current, limit)
 ```
 
+### Router Organization
+
+```go
+❌ WRONG - All routes in index.go:
+// internal/app/routers/index.go (500+ lines)
+func RegisterRoutes(router *gin.Engine) {
+    authRoutes := router.Group("/auth")
+    {
+        authRoutes.POST("/register", ...)
+        authRoutes.POST("/login", ...)
+    }
+    userRoutes := router.Group("/users")
+    {
+        // ... 50+ routes ...
+    }
+    // ... becomes 500+ lines
+}
+
+✅ CORRECT - Separate files by feature:
+// internal/app/routers/auth_routes.go (40 lines)
+func RegisterAuthRoutes(router *gin.Engine, authService *services.AuthService) {
+    authController := controllers.NewAuthController(authService)
+    authRoutes := router.Group("/auth")
+    {
+        authRoutes.POST("/register", authController.Register)
+        authRoutes.POST("/login", authController.Login)
+    }
+}
+
+// internal/app/routers/index.go (50 lines)
+func RegisterRoutes(router *gin.Engine) {
+    authService := services.NewAuthService()
+    RegisterAuthRoutes(router, authService)
+    RegisterUserRoutes(router, userService, authService)
+}
+```
+
+**Rules:**
+- One file per controller/feature: `{feature}_routes.go`
+- Function naming: `Register{Feature}Routes()`
+- Max 100 lines per route file
+- Main `index.go` only calls Register functions
+
 ---
 
 ## 📁 File Structure Reference
@@ -148,17 +191,22 @@ logger.Warnf("approaching rate limit: %d/%d", current, limit)
 project/
 ├── internal/
 │   ├── app/
-│   │   ├── controllers/    → Struct-based, use response utils
-│   │   ├── services/       → Struct-based, business logic
-│   │   ├── dto/           → Request/Response structs
-│   │   └── middlewares/   → Gin middleware functions
+│   │   ├── controllers/       → Struct-based, use response utils
+│   │   ├── services/          → Struct-based, business logic
+│   │   ├── dto/              → Request/Response structs
+│   │   ├── middlewares/      → Gin middleware functions
+│   │   └── routers/          → Route registration (ONE FILE PER FEATURE)
+│   │       ├── index.go      → Main router (calls all Register functions)
+│   │       ├── auth_routes.go    → Auth routes only
+│   │       ├── user_routes.go    → User routes only
+│   │       └── product_routes.go → Product routes only
 │   └── domain/
-│       ├── models/        → GORM entities
-│       └── repositories/  → Function-based CRUD
+│       ├── models/           → GORM entities
+│       └── repositories/     → Function-based CRUD
 ├── pkg/
 │   └── utils/
-│       └── response.go    → MUST use these utilities
-└── tests/                 → ALL tests here
+│       └── response.go       → MUST use these utilities
+└── tests/                    → ALL tests here
     ├── unit/
     │   ├── controllers/
     │   ├── services/
@@ -182,6 +230,10 @@ Writing a service?
 Returning response?
   → Using utils.Ok/Created/etc? YES → ✅
   → Using c.JSON directly? ❌ STOP
+
+Adding routes?
+  → Separate {feature}_routes.go file? YES → ✅
+  → All in index.go? ❌ STOP
 
 File approaching 250 lines?
   → Split now? YES → ✅

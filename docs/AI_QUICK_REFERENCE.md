@@ -156,6 +156,66 @@ func (r *resourceRepository) FindByID(id uint) (*models.Resource, error) {
 }
 ```
 
+### Router (30-60 lines per file)
+
+⚠️ **CRITICAL: One route file per controller/feature**
+
+```go
+// internal/app/routers/user_routes.go
+package routers
+
+import (
+    "github.com/your-org/project/internal/app/controllers"
+    "github.com/your-org/project/internal/app/middlewares"
+    "github.com/your-org/project/internal/app/services"
+    "github.com/gin-gonic/gin"
+)
+
+// RegisterUserRoutes registers user management routes
+func RegisterUserRoutes(router *gin.Engine, userService *services.UserService, authService *services.AuthService) {
+    // 1. Initialize controller with DI
+    userController := controllers.NewUserController(userService)
+
+    // 2. Group routes
+    userRoutes := router.Group("/api/v1/users")
+
+    // 3. Apply middleware
+    userRoutes.Use(middlewares.AuthMiddleware(authService))
+
+    // 4. Define routes
+    {
+        userRoutes.GET("", userController.GetAll)
+        userRoutes.GET("/:id", userController.GetByID)
+        userRoutes.PUT("/:id", userController.Update)
+        userRoutes.DELETE("/:id", userController.Delete)
+    }
+}
+
+// internal/app/routers/index.go
+package routers
+
+func RegisterRoutes(router *gin.Engine) {
+    // Health check
+    router.GET("/health", func(ctx *gin.Context) {
+        ctx.JSON(http.StatusOK, gin.H{"live": "ok"})
+    })
+
+    // Initialize services
+    authService := services.NewAuthService()
+    userService := services.NewUserService()
+
+    // Register all route groups
+    RegisterAuthRoutes(router, authService)
+    RegisterUserRoutes(router, userService, authService)
+}
+```
+
+**Rules:**
+- ✅ File: `{feature}_routes.go`
+- ✅ Function: `Register{Feature}Routes()`
+- ✅ Max 100 lines per route file
+- ❌ DON'T put all routes in index.go
+
 ---
 
 ## ✅ Error Handling Pattern

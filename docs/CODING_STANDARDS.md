@@ -1727,6 +1727,232 @@ func CreateUser(c *gin.Context) {
 /users/v1 (version in wrong place)
 ```
 
+### 11.6 Router Organization
+
+**⚠️ CRITICAL: Router files MUST be organized by controller/feature, NOT all in one file.**
+
+**File Structure:**
+
+```
+internal/app/routers/
+├── index.go           # Main router - registers all route groups
+├── auth_routes.go     # Authentication routes
+├── user_routes.go     # User management routes
+├── product_routes.go  # Product routes
+└── order_routes.go    # Order routes
+```
+
+**Rules:**
+
+```go
+✅ CORRECT:
+1. One route file per controller/feature
+2. File name pattern: {feature}_routes.go
+3. Each route file has a Register function
+4. Main router calls all Register functions
+
+// internal/app/routers/auth_routes.go
+package routers
+
+import (
+    "github.com/your-org/project/internal/app/controllers"
+    "github.com/your-org/project/internal/app/middlewares"
+    "github.com/your-org/project/internal/app/services"
+    "github.com/gin-gonic/gin"
+)
+
+// RegisterAuthRoutes registers authentication routes
+func RegisterAuthRoutes(router *gin.Engine, authService *services.AuthService) {
+    authController := controllers.NewAuthController(authService)
+
+    authRoutes := router.Group("/auth")
+    {
+        authRoutes.POST("/register", authController.Register)
+        authRoutes.POST("/login", authController.Login)
+        authRoutes.POST("/refresh", authController.RefreshToken)
+    }
+}
+
+// internal/app/routers/user_routes.go
+package routers
+
+import (
+    "github.com/your-org/project/internal/app/controllers"
+    "github.com/your-org/project/internal/app/middlewares"
+    "github.com/your-org/project/internal/app/services"
+    "github.com/gin-gonic/gin"
+)
+
+// RegisterUserRoutes registers user management routes
+func RegisterUserRoutes(router *gin.Engine, userService *services.UserService, authService *services.AuthService) {
+    userController := controllers.NewUserController(userService)
+
+    // Protected routes - require authentication
+    userRoutes := router.Group("/api/v1/users")
+    userRoutes.Use(middlewares.AuthMiddleware(authService))
+    {
+        userRoutes.GET("", userController.GetAll)
+        userRoutes.GET("/:id", userController.GetByID)
+        userRoutes.PUT("/:id", userController.Update)
+        userRoutes.DELETE("/:id", userController.Delete)
+    }
+}
+
+// internal/app/routers/index.go
+package routers
+
+import (
+    "net/http"
+
+    "github.com/your-org/project/internal/app/services"
+    "github.com/gin-gonic/gin"
+)
+
+// RegisterRoutes registers all application routes
+func RegisterRoutes(router *gin.Engine) {
+    // 404 handler
+    router.NoRoute(func(ctx *gin.Context) {
+        ctx.JSON(http.StatusNotFound, gin.H{
+            "status":  http.StatusNotFound,
+            "message": "Route Not Found",
+        })
+    })
+
+    // Health check (public)
+    router.GET("/health", func(ctx *gin.Context) {
+        ctx.JSON(http.StatusOK, gin.H{"live": "ok"})
+    })
+
+    // Initialize services
+    authService := services.NewAuthService()
+    userService := services.NewUserService()
+    productService := services.NewProductService()
+
+    // Register route groups
+    RegisterAuthRoutes(router, authService)
+    RegisterUserRoutes(router, userService, authService)
+    RegisterProductRoutes(router, productService, authService)
+    RegisterOrderRoutes(router, orderService, authService)
+}
+
+❌ WRONG:
+// All routes in index.go (BAD - file akan jadi terlalu panjang)
+package routers
+
+func RegisterRoutes(router *gin.Engine) {
+    // Auth routes
+    authRoutes := router.Group("/auth")
+    {
+        authRoutes.POST("/register", ...)
+        authRoutes.POST("/login", ...)
+    }
+
+    // User routes
+    userRoutes := router.Group("/users")
+    {
+        userRoutes.GET("", ...)
+        userRoutes.GET("/:id", ...)
+        userRoutes.PUT("/:id", ...)
+        // ... 50+ more routes ...
+    }
+
+    // Product routes
+    productRoutes := router.Group("/products")
+    {
+        // ... 30+ more routes ...
+    }
+
+    // This file will become 500+ lines! ❌
+}
+```
+
+**Route Organization Principles:**
+
+1. **Separation by Feature**
+   - One file per feature/controller
+   - Max 100 lines per route file
+   - Clear naming: `{feature}_routes.go`
+
+2. **Consistent Pattern**
+   ```go
+   // Function naming
+   RegisterAuthRoutes()      ✅
+   RegisterUserRoutes()      ✅
+   AuthRoutes()              ❌ (missing Register prefix)
+   SetupAuthRoutes()         ❌ (use Register)
+   InitAuthRoutes()          ❌ (use Register)
+   ```
+
+3. **Dependency Injection**
+   ```go
+   ✅ CORRECT:
+   func RegisterUserRoutes(router *gin.Engine, userService *services.UserService) {
+       userController := controllers.NewUserController(userService)
+       // ...
+   }
+
+   ❌ WRONG:
+   func RegisterUserRoutes(router *gin.Engine) {
+       // Creating services inside route function
+       userService := services.NewUserService()  // Should be passed as param
+   }
+   ```
+
+4. **Route Grouping**
+   ```go
+   ✅ CORRECT:
+   // Group related routes
+   authRoutes := router.Group("/auth")
+   {
+       authRoutes.POST("/register", authController.Register)
+       authRoutes.POST("/login", authController.Login)
+   }
+
+   // Protected group
+   protectedRoutes := router.Group("/api/v1")
+   protectedRoutes.Use(middlewares.AuthMiddleware(authService))
+   {
+       protectedRoutes.GET("/profile", userController.GetProfile)
+   }
+
+   ❌ WRONG:
+   // No grouping - repetitive
+   router.POST("/auth/register", authController.Register)
+   router.POST("/auth/login", authController.Login)
+   router.POST("/auth/refresh", authController.RefreshToken)
+   ```
+
+5. **File Size Limit**
+   - Single route file MAX 100 lines
+   - If exceeding, split by sub-feature
+   - Example: `user_routes.go` → `user_admin_routes.go` + `user_public_routes.go`
+
+**Why This Matters:**
+
+- ✅ **Maintainability**: Easy to find routes for specific feature
+- ✅ **Scalability**: Add new features without modifying existing files
+- ✅ **Readability**: Each file focuses on one responsibility
+- ✅ **Team Work**: Multiple developers can work on different route files
+- ✅ **File Size**: Prevents index.go from becoming 1000+ lines
+- ❌ **Without organization**: index.go becomes unmaintainable mess
+
+**Example Project Structure:**
+
+```
+internal/app/routers/
+├── index.go              # 50 lines - main router
+├── auth_routes.go        # 40 lines - auth endpoints
+├── user_routes.go        # 60 lines - user CRUD
+├── product_routes.go     # 70 lines - product CRUD
+├── order_routes.go       # 80 lines - order management
+├── payment_routes.go     # 55 lines - payment processing
+└── admin_routes.go       # 45 lines - admin panel routes
+
+Total: ~400 lines across 7 files (average 57 lines per file)
+vs
+Single file: 400 lines (unmaintainable)
+```
+
 ---
 
 ## 12. CONFIGURATION
