@@ -26,7 +26,9 @@ func RegisterRoutes(route *gin.Engine) {
 	authController := controllers.NewAuthController(authService)
 
 	// Auth routes (public - no authentication required)
+	// Apply rate limiting to prevent brute force attacks
 	authRoutes := route.Group("/auth")
+	authRoutes.Use(middlewares.RateLimitMiddleware())
 	{
 		authRoutes.POST("/register", authController.Register)
 		authRoutes.POST("/login", authController.Login)

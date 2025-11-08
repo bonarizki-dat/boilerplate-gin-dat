@@ -59,7 +59,8 @@ Start your next API project with:
 - 🗄️ **GORM Integration** - PostgreSQL with master-replica configuration
 - ✅ **Request Validation** - Built-in validation using go-playground/validator
 - 📝 **Structured Logging** - Logrus integration with custom formatting
-- 🔌 **Middleware Support** - CORS, Auth middleware, easily extensible
+- 🔌 **Middleware Support** - CORS, Auth, Rate Limiting middleware
+- 🛡️ **Rate Limiting** - Per-IP rate limiting to prevent abuse and brute force attacks
 - 🗃️ **Database Migrations** - SQL migrations and AutoMigrate support
 - 🐳 **Docker Support** - Dev and prod Docker configurations with live reload
 - 🧪 **Comprehensive Testing** - Service and controller test examples
