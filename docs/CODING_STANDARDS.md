@@ -146,14 +146,14 @@ Location rules:
 Examples:
 ✅ CORRECT:
 internal/app/dto/
-    ├── hub_dto.go          → AsastaRoute, ProxyResponse
+    ├── notification_dto.go → NotificationRequest, NotificationResponse
     ├── user_dto.go         → CreateUserRequest, UserResponse
-    ├── transaction_dto.go  → TransactionRequest, TransactionResponse
+    ├── order_dto.go        → OrderRequest, OrderResponse
 
 ❌ WRONG:
-internal/app/services/hub_types.go    → AsastaRoute (should be in dto/)
-internal/app/services/user_types.go   → UserRequest (should be in dto/)
-pkg/types/request.go                  → ApiRequest (should be in dto/)
+internal/app/services/notification_types.go → NotificationRoute (should be in dto/)
+internal/app/services/user_types.go         → UserRequest (should be in dto/)
+pkg/types/request.go                        → ApiRequest (should be in dto/)
 ```
 
 #### 1.5.2 Enums and Constants
@@ -174,12 +174,12 @@ Location rules:
 Examples:
 ✅ CORRECT:
 pkg/enums/
-    ├── hub_constants.go    → EndpointBalance, ProviderStatusAsastaSuccess
-    ├── status.go           → StatusActive, StatusInactive
-    ├── service.go          → ServiceIntrajasa, ServiceAsasta
+    ├── payment_constants.go → PaymentMethodCard, PaymentStatusSuccess
+    ├── status.go            → StatusActive, StatusInactive
+    ├── role.go              → RoleAdmin, RoleUser, RoleModerator
 
 internal/app/services/
-    └── hub_router.go       → ServiceRouteMapping (map using dto.AsastaRoute)
+    └── notification_router.go → NotificationRouteMapping (map using dto.NotificationRoute)
 
 ❌ WRONG:
 internal/app/services/hub_types.go         → EndpointBalance (should be in enums/)
@@ -204,14 +204,14 @@ pkg/utils → internal/app/models      ✗
 
 Solution for maps using DTOs:
 // ❌ WRONG - causes import cycle
-// pkg/enums/hub_constants.go
+// pkg/enums/notification_constants.go
 import "internal/app/dto"
-var ServiceRouteMapping = map[string]dto.AsastaRoute{...}
+var NotificationRouteMapping = map[string]dto.NotificationRoute{...}
 
 // ✅ CORRECT - keep in services
-// internal/app/services/hub_router.go
+// internal/app/services/notification_router.go
 import "internal/app/dto"
-var ServiceRouteMapping = map[string]dto.AsastaRoute{...}
+var NotificationRouteMapping = map[string]dto.NotificationRoute{...}
 ```
 
 ---
@@ -1648,9 +1648,6 @@ c.JSON(500, map[string]string{"message": "error"})
 **Generic Functions:**
 - `utils.HandleSuccess(c, code, data, message)` - Custom success status
 - `utils.HandleErrors(c, code, err, message)` - Custom error status
-
-**Special Functions:**
-- `utils.RespondErrorIntrajasa(c, code, msg)` - For Intrajasa error format
 
 #### Standard Response Format
 

@@ -109,14 +109,14 @@ panic("error")           // ❌ FORBIDDEN in services
 **If you need a map using DTOs:**
 ```go
 // ❌ WRONG - causes import cycle
-// File: pkg/enums/hub_constants.go
+// File: pkg/enums/notification_constants.go
 import "internal/app/dto"
-var ServiceRouteMapping = map[string]dto.AsastaRoute{...}
+var NotificationRouteMapping = map[string]dto.NotificationRoute{...}
 
 // ✅ CORRECT - keep in services
-// File: internal/app/services/hub_router.go
+// File: internal/app/services/notification_router.go
 import "internal/app/dto"
-var ServiceRouteMapping = map[string]dto.AsastaRoute{...}
+var NotificationRouteMapping = map[string]dto.NotificationRoute{...}
 ```
 
 ### 7. API Responses - MANDATORY UTILS

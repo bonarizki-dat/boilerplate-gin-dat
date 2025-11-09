@@ -214,13 +214,3 @@ func InternalServerError(c *gin.Context, err error, message string) {
 func BadGateway(c *gin.Context, err error, message string) {
 	HandleErrors(c, http.StatusBadGateway, err, message)
 }
-
-// RespondErrorIntrajasa is a helper to send standard Intrajasa error response
-func RespondErrorIntrajasa(c *gin.Context, code string, msg string) {
-	c.JSON(http.StatusOK, gin.H{
-		"responseData": gin.H{
-			"responseCode": code,
-			"responseMsg":  msg,
-		},
-	})
-}

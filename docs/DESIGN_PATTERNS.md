@@ -567,11 +567,10 @@ project-name/
 │   │   └── services/                   # Business logic (fat)
 │   │       ├── auth_service.go         # Authentication logic
 │   │       ├── user_service.go         # User business logic
-│   │       ├── client_service.go       # Client business logic
-│   │       ├── transaction_service.go  # Transaction logic
+│   │       ├── order_service.go        # Order processing logic
 │   │       ├── email_service.go        # Email sending
-│   │       ├── intrajasa_service.go    # Intrajasa API client
-│   │       └── asasta_service.go       # Asasta API client
+│   │       ├── payment_service.go      # Payment processing
+│   │       └── notification_service.go # Push notifications
 │   │
 │   └── domain/                         # Domain layer
 │       │
@@ -2446,15 +2445,15 @@ type TaxService struct {}
 // pkg/enums/constants.go
 import "internal/app/dto"  // ❌ pkg importing internal!
 
-var ServiceMapping = map[string]dto.AsastaRoute{...}
+var NotificationMapping = map[string]dto.NotificationRoute{...}
 ```
 
 **CORRECT:**
 ```go
-// internal/app/services/hub_router.go
+// internal/app/services/notification_router.go
 import "internal/app/dto"  // ✅ services can import dto
 
-var ServiceMapping = map[string]dto.AsastaRoute{...}
+var NotificationMapping = map[string]dto.NotificationRoute{...}
 ```
 
 ---
