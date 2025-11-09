@@ -1,4 +1,4 @@
-# IntraRemit-HubApi - Coding Standards & Guidelines
+# Coding Standards & Guidelines
 
 **Version:** 1.0
 **Last Updated:** 2025-11-08
@@ -34,20 +34,74 @@ After reading `00_AI_CRITICAL_RULES.md`, focus on these sections:
 
 ## 📋 Table of Contents
 
-1. [File Organization](#1-file-organization)
-2. [Naming Conventions](#2-naming-conventions)
-3. [Code Structure](#3-code-structure)
-4. [Function Guidelines](#4-function-guidelines)
-5. [Error Handling](#5-error-handling)
-6. [Documentation](#6-documentation)
-7. [Testing Requirements](#7-testing-requirements)
-8. [Logging Standards](#8-logging-standards)
-9. [Security Guidelines](#9-security-guidelines)
-10. [Database Access](#10-database-access)
-11. [API Design](#11-api-design)
-12. [Configuration](#12-configuration)
-13. [Forbidden Practices](#13-forbidden-practices)
-14. [Code Review Checklist](#14-code-review-checklist)
+> **Quick Navigation:** Use Ctrl+F with line numbers (e.g., "L1429") or search keywords
+
+### 🔥 Critical Sections (Read First)
+
+| Section | Lines | Time | Keywords |
+|---------|-------|------|----------|
+| [1. File Organization](#1-file-organization) | L54-218 | 3 min | `300 lines`, `dto`, `enums`, `imports` |
+| → [1.5 DTO & Enum Placement](#15-dto-and-enum-placement-rules) | L132-217 | 2 min | `internal/app/dto`, `pkg/enums`, `import cycle` |
+| [5. Error Handling](#5-error-handling) | L562-711 | 3 min | `fmt.Errorf`, `%w`, `logger.Errorf` |
+| [7. Testing Requirements](#7-testing-requirements) | L863-1036 | 4 min | `tests/`, `_test`, `70%`, `coverage` |
+| [11. API Design](#11-api-design) | L1421-1953 | 8 min | `REST`, `response`, `utils.Ok`, `routes` |
+| → [11.4 Response Utilities](#114-response-utilities) | L1547-1711 | 3 min | `utils.Ok`, `utils.Created`, `utils.BadRequest` |
+| → [11.6 Router Organization](#116-router-organization) | L1727-1952 | 4 min | `Register*Routes`, `{feature}_routes.go` |
+
+### 📚 All Sections
+
+| # | Section | Lines | Keywords |
+|---|---------|-------|----------|
+| 1 | [File Organization](#1-file-organization) | L54-218 | `file size`, `directory`, `dto`, `enums` |
+| 1.1 | [File Size Limits](#11-file-size-limits) | L56-67 | `300 lines`, `100 lines function` |
+| 1.2 | [Directory Structure](#12-directory-structure) | L68-100 | `internal/`, `pkg/`, `cmd/` |
+| 1.3 | [File Naming](#13-file-naming) | L101-115 | `snake_case`, `_test.go`, `naming` |
+| 1.4 | [Package Organization](#14-package-organization) | L116-131 | `package`, `organization` |
+| 1.5 | [DTO & Enum Placement](#15-dto-and-enum-placement-rules) | L132-217 | `dto`, `enums`, `import cycle` |
+| 2 | [Naming Conventions](#2-naming-conventions) | L219-328 | `camelCase`, `PascalCase`, `naming` |
+| 3 | [Code Structure](#3-code-structure) | L329-435 | `package`, `import`, `struct` |
+| 4 | [Function Guidelines](#4-function-guidelines) | L436-561 | `function size`, `parameters`, `return` |
+| 5 | [Error Handling](#5-error-handling) | L562-711 | `error`, `wrapping`, `logging` |
+| 6 | [Documentation](#6-documentation) | L712-862 | `comment`, `godoc`, `docs` |
+| 7 | [Testing Requirements](#7-testing-requirements) | L863-1036 | `test`, `tests/`, `coverage`, `70%` |
+| 8 | [Logging Standards](#8-logging-standards) | L1037-1125 | `logger`, `Infof`, `Errorf`, `Warnf` |
+| 9 | [Security Guidelines](#9-security-guidelines) | L1126-1263 | `validation`, `SQL injection`, `XSS` |
+| 10 | [Database Access](#10-database-access) | L1264-1420 | `GORM`, `model`, `migration` |
+| 11 | [API Design](#11-api-design) | L1421-1953 | `REST`, `API`, `response`, `routes` |
+| 11.1 | [RESTful Conventions](#111-restful-conventions) | L1423-1446 | `REST`, `HTTP methods`, `endpoints` |
+| 11.2 | [HTTP Status Codes](#112-http-status-codes) | L1447-1493 | `200`, `404`, `500`, `status` |
+| 11.3 | [Response Format](#113-response-format) | L1494-1546 | `success`, `message`, `data`, `errors` |
+| 11.4 | [Response Utilities](#114-response-utilities) | L1547-1711 | `utils.Ok`, `utils.Created`, `HandleErrors` |
+| 11.5 | [API Versioning](#115-api-versioning) | L1712-1726 | `v1`, `v2`, `versioning` |
+| 11.6 | [Router Organization](#116-router-organization) | L1727-1952 | `routes`, `Register*Routes`, `index.go` |
+| 12 | [Configuration](#12-configuration) | L1955-2035 | `config`, `env`, `.env` |
+| 13 | [Forbidden Practices](#13-forbidden-practices) | L2036-2118 | `panic`, `global`, `anti-pattern` |
+| 14 | [Code Review Checklist](#14-code-review-checklist) | L2119-2171 | `checklist`, `review`, `validation` |
+| 15 | [AI Agent Rules](#15-ai-agent-specific-rules) | L2172-2221 | `AI`, `agent`, `automation` |
+| 16 | [Resources](#16-resources) | L2222-2226 | `links`, `references`, `docs` |
+
+### 🎯 Quick Lookups by Task
+
+**Creating Controllers/Services:**
+- L132-157: DTO Placement
+- L1547-1711: Response Utilities (MUST use)
+- See: `DESIGN_PATTERNS.md` L900-1016
+
+**Adding Routes:**
+- L1727-1952: Router Organization
+- L1423-1446: RESTful Conventions
+
+**Writing Tests:**
+- L863-1036: Testing Requirements
+- L56-67: File Size Limits
+
+**Error Handling:**
+- L562-711: Error Handling Patterns
+- L1037-1125: Logging Standards
+
+**Database Models:**
+- L1264-1420: Database Access
+- See: `DESIGN_PATTERNS.md` L1017-1085
 
 ---
 
@@ -1552,7 +1606,7 @@ c.JSON(404, gin.H{"message": "User created"})  // Should be 201
 
 ```go
 ✅ CORRECT - Use utility functions:
-import "github.com/DarmawanAryansyahTeknologi/IntraRemit-HubApi/pkg/utils"
+import "github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
 
 // 200 OK
 func GetUser(c *gin.Context) {
@@ -1965,7 +2019,7 @@ MASTER_DB_HOST=localhost
 MASTER_DB_PORT=5432
 MASTER_DB_USER=postgres
 MASTER_DB_PASSWORD=secret
-MASTER_DB_NAME=intraremit
+MASTER_DB_NAME=project_db
 
 JWT_SECRET=your-secret-key
 API_TIMEOUT=30s

@@ -8,35 +8,30 @@ Welcome to the project documentation. This guide helps you navigate all document
 
 ### Reading Order (MANDATORY)
 
-1. **[`00_AI_CRITICAL_RULES.md`](./00_AI_CRITICAL_RULES.md)** ⚠️ **START HERE** (100 lines)
+1. **[`00_AI_CRITICAL_RULES.md`](./00_AI_CRITICAL_RULES.md)** ⚠️ **START HERE** (100 lines, 2 min)
    - Absolute non-negotiable rules
    - Struct-based patterns (MANDATORY)
    - Response utilities (MANDATORY)
    - Test location rules (MANDATORY)
    - **READ THIS FIRST OR YOUR CODE WILL BE REJECTED**
 
-2. **[`AI_QUICK_REFERENCE.md`](./AI_QUICK_REFERENCE.md)** (405 lines)
+2. **[`AI_QUICK_REFERENCE.md`](./AI_QUICK_REFERENCE.md)** (405 lines, 5 min)
    - Quick templates for controllers, services, repositories
    - The 5 Commandments (file/function size limits)
    - Testing checklist
    - Common patterns
 
-3. **Critical Sections from Long Docs:**
-   - **CODING_STANDARDS.md:**
-     - Lines 900-1100: Struct-based patterns
-     - Lines 1429-1475: Response format
-     - Lines 1479-1584: Response utilities
-     - Lines 840-1009: Testing requirements
+3. **[`DOCS_INDEX.md`](./DOCS_INDEX.md)** ⭐ **NEW - BOOKMARK THIS** (comprehensive index)
+   - Quick keyword lookup table
+   - Line number references for all topics
+   - Task-based navigation (e.g., "I need to create a controller")
+   - Common task quick links
+   - Full document structure overview
+   - **USE THIS FOR QUICK LOOKUPS DURING WORK**
 
-   - **DESIGN_PATTERNS.md:**
-     - Lines 900-948: Controller pattern
-     - Lines 984-1016: Service pattern
-     - Lines 1070-1100: Response pattern
-     - Lines 439-492: Dependency injection
-
-4. **Use as Reference:**
-   - Full CODING_STANDARDS.md when needed
-   - Full DESIGN_PATTERNS.md for detailed patterns
+4. **Use as Reference (Ctrl+F + line numbers):**
+   - **[`CODING_STANDARDS.md`](./CODING_STANDARDS.md)** - Enhanced TOC with line numbers & keywords
+   - **[`DESIGN_PATTERNS.md`](./DESIGN_PATTERNS.md)** - Enhanced TOC with line numbers & keywords
 
 ---
 
@@ -48,8 +43,9 @@ Welcome to the project documentation. This guide helps you navigate all document
 |------|------|---------|--------------|
 | **00_AI_CRITICAL_RULES.md** | 100 lines | Non-negotiable rules | **FIRST - ALWAYS** |
 | **AI_QUICK_REFERENCE.md** | 405 lines | Templates & checklists | Before writing code |
-| **CODING_STANDARDS.md** | 1955 lines | Complete coding standards | Reference (focus on critical sections) |
-| **DESIGN_PATTERNS.md** | 2479 lines | Architecture patterns | Reference (focus on critical sections) |
+| **DOCS_INDEX.md** ⭐ NEW | ~500 lines | Master index with line refs | **BOOKMARK - use during work** |
+| **CODING_STANDARDS.md** | 2,200+ lines | Complete coding standards | Reference (use Ctrl+F + line numbers) |
+| **DESIGN_PATTERNS.md** | 2,600+ lines | Architecture patterns | Reference (use Ctrl+F + line numbers) |
 
 ### For Developers
 
@@ -142,12 +138,16 @@ Welcome to the project documentation. This guide helps you navigate all document
 
 ## 📊 Documentation Statistics
 
-- **Total Documentation:** ~5,000 lines
+- **Total Documentation:** ~5,500 lines
 - **Critical Rules:** 100 lines (2%)
-- **Must Read Before Coding:** 505 lines (10%)
-- **Reference Material:** 4,434 lines (90%)
+- **Must Read Before Coding:** 505 lines (9%)
+- **Quick Lookup Index:** 500 lines (9%)
+- **Reference Material:** 4,800 lines (82%)
 
-**Efficiency Tip:** Read 10% (critical + quick ref) first, use 90% as reference.
+**Efficiency Tip:**
+1. Read critical rules + quick ref first (~10 min)
+2. Bookmark DOCS_INDEX.md for quick lookups
+3. Use enhanced TOCs in full docs with Ctrl+F + line numbers
 
 ---
 
@@ -156,8 +156,10 @@ Welcome to the project documentation. This guide helps you navigate all document
 **Last Updated:** 2025-11-09
 
 **Recent Changes:**
-- Added `00_AI_CRITICAL_RULES.md` (NEW - 2025-11-09)
-- Updated all docs with critical section pointers (2025-11-09)
+- Added `DOCS_INDEX.md` - Master index with line number refs (NEW - 2025-11-09)
+- Enhanced TOCs in CODING_STANDARDS.md & DESIGN_PATTERNS.md with keywords (2025-11-09)
+- Added `00_AI_CRITICAL_RULES.md` (2025-11-09)
+- Added router organization standards (2025-11-09)
 - Added tests/ directory structure requirements (2025-11-09)
 
 ---

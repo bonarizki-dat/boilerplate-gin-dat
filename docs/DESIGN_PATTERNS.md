@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Last Updated:** 2025-11-08
-**Project:** IntraRemit-HubApi (Reference Implementation)
+**Project:** Go Gin Boilerplate - Universal Starter Kit
 
 ---
 
@@ -34,19 +34,96 @@ After reading `00_AI_CRITICAL_RULES.md`, focus on these sections:
 
 ## 📋 Table of Contents
 
-1. [Overview](#1-overview)
-2. [Project Architecture](#2-project-architecture)
-3. [Core Design Patterns](#3-core-design-patterns)
-4. [Directory Structure Standard](#4-directory-structure-standard)
-5. [Layer Responsibilities](#5-layer-responsibilities)
-6. [Implementation Patterns](#6-implementation-patterns)
-7. [Request Flow Patterns](#7-request-flow-patterns)
-8. [Data Flow Patterns](#8-data-flow-patterns)
-9. [Error Handling Patterns](#9-error-handling-patterns)
-10. [Testing Patterns](#10-testing-patterns)
-11. [Complete Feature Implementation Guide](#11-complete-feature-implementation-guide)
-12. [Pattern Examples from Codebase](#12-pattern-examples-from-codebase)
-13. [Anti-Patterns to Avoid](#13-anti-patterns-to-avoid)
+> **Quick Navigation:** Use Ctrl+F with line numbers (e.g., "L900") or search keywords
+
+### 🔥 Critical Sections (MUST READ)
+
+| Section | Lines | Time | Keywords |
+|---------|-------|------|----------|
+| [6. Implementation Patterns](#6-implementation-patterns) | L919-1173 | 8 min | `struct`, `controller`, `service`, `repository` |
+| → [6.1 Struct-Based Controller](#61-struct-based-controller-pattern) | L921-1005 | 3 min | `NewController`, `DI`, `struct methods` |
+| → [6.2 Struct-Based Service](#62-struct-based-service-pattern) | L1006-1040 | 2 min | `NewService`, `business logic` |
+| → [6.3 Function-Based Repository](#63-function-based-repository-pattern) | L1041-1092 | 2 min | `CRUD`, `GetByID`, `Create`, `Update` |
+| [13. Anti-Patterns](#13-anti-patterns-to-avoid) | L2301-2460 | 4 min | `wrong`, `bad`, `avoid`, `anti-pattern` |
+
+### 📚 All Sections
+
+| # | Section | Lines | Keywords |
+|---|---------|-------|----------|
+| 1 | [Overview](#1-overview) | L53-98 | `philosophy`, `goals`, `principles` |
+| 1.1 | [Architecture Philosophy](#11-architecture-philosophy) | L55-100 | `clean architecture`, `why patterns` |
+| 2 | [Project Architecture](#2-project-architecture) | L99-153 | `layers`, `architecture`, `separation` |
+| 2.1 | [Clean Architecture Layers](#21-clean-architecture-layers) | L101-134 | `layer`, `controller`, `service`, `repository` |
+| 2.2 | [Dependency Flow Rules](#22-dependency-flow-rules) | L135-153 | `dependency`, `direction`, `flow` |
+| 3 | [Core Design Patterns](#3-core-design-patterns) | L154-516 | `patterns`, `repository`, `factory`, `DI` |
+| 3.1 | [Repository Pattern](#31-repository-pattern) | L156-227 | `repository`, `data access`, `CRUD` |
+| 3.2 | [Service Layer Pattern](#32-service-layer-pattern) | L228-303 | `service`, `business logic`, `orchestration` |
+| 3.3 | [DTO Pattern](#33-dto-data-transfer-object-pattern) | L304-368 | `DTO`, `data transfer`, `request`, `response` |
+| 3.4 | [Factory Pattern](#34-factory-pattern) | L369-409 | `factory`, `New*`, `constructor` |
+| 3.5 | [Middleware Pattern](#35-middleware-pattern) | L410-462 | `middleware`, `gin.HandlerFunc`, `c.Next()` |
+| 3.6 | [Dependency Injection](#36-dependency-injection-pattern) | L463-516 | `DI`, `injection`, `constructor` |
+| 4 | [Directory Structure](#4-directory-structure-standard) | L517-682 | `directory`, `folder`, `structure`, `tree` |
+| 4.1 | [Complete Project Structure](#41-complete-project-structure) | L519-638 | `project tree`, `full structure` |
+| 4.2 | [Package Organization](#42-package-organization-rules) | L639-682 | `package`, `internal`, `pkg`, `cmd` |
+| 5 | [Layer Responsibilities](#5-layer-responsibilities) | L683-918 | `responsibilities`, `what`, `where` |
+| 5.1 | [Controller Layer](#51-controller-layer-thin-layer) | L685-731 | `controller`, `thin`, `HTTP`, `validation` |
+| 5.2 | [Service Layer](#52-service-layer-fat-layer) | L732-810 | `service`, `fat`, `business logic` |
+| 5.3 | [Repository Layer](#53-repository-layer-data-layer) | L811-918 | `repository`, `database`, `CRUD`, `GORM` |
+| 6 | [Implementation Patterns](#6-implementation-patterns) | L919-1173 | `how to`, `implementation`, `code` |
+| 6.1 | [Struct-Based Controller](#61-struct-based-controller-pattern) | L921-1005 | `controller struct`, `NewController`, `methods` |
+| 6.2 | [Struct-Based Service](#62-struct-based-service-pattern) | L1006-1040 | `service struct`, `NewService`, `methods` |
+| 6.3 | [Function-Based Repository](#63-function-based-repository-pattern) | L1041-1092 | `repository functions`, `CreateUser`, `GetByID` |
+| 6.4 | [Response Utility Pattern](#64-response-utility-pattern) | L1093-1173 | `utils.Ok`, `response`, `standard format` |
+| 7 | [Request Flow Patterns](#7-request-flow-patterns) | L1174-1362 | `flow`, `request`, `lifecycle`, `pipeline` |
+| 7.1 | [Standard CRUD Flow](#71-standard-crud-flow) | L1176-1268 | `CRUD`, `create`, `read`, `update`, `delete` |
+| 7.2 | [Authentication Flow](#72-authentication-flow-pattern) | L1269-1318 | `auth`, `login`, `JWT`, `token` |
+| 7.3 | [Transaction Flow](#73-transaction-flow-pattern) | L1319-1362 | `transaction`, `Begin()`, `Commit()`, `Rollback()` |
+| 8 | [Data Flow Patterns](#8-data-flow-patterns) | L1363-1484 | `data`, `transformation`, `mapping` |
+| 8.1 | [Request → Response Transform](#81-request--response-data-transformation) | L1365-1433 | `transform`, `DTO`, `model`, `mapping` |
+| 8.2 | [DTO vs Model Usage](#82-dto-vs-model-usage) | L1434-1484 | `when`, `DTO`, `model`, `difference` |
+| 9 | [Error Handling Patterns](#9-error-handling-patterns) | L1485-1613 | `error`, `handling`, `recovery`, `logging` |
+| 9.1 | [Error Flow](#91-error-flow-pattern) | L1487-1516 | `error flow`, `propagation` |
+| 9.2 | [Custom Error Types](#92-custom-error-types) | L1517-1562 | `custom error`, `typed error` |
+| 9.3 | [Error Wrapping](#93-error-wrapping-pattern) | L1563-1613 | `%w`, `fmt.Errorf`, `wrapping` |
+| 10 | [Testing Patterns](#10-testing-patterns) | L1614-1780 | `test`, `testing`, `mock`, `coverage` |
+| 10.1 | [Service Layer Testing](#101-service-layer-testing-pattern) | L1616-1736 | `service test`, `mock`, `setup` |
+| 10.2 | [Table-Driven Testing](#102-table-driven-testing-pattern) | L1737-1780 | `table test`, `subtests`, `t.Run` |
+| 11 | [Feature Implementation Guide](#11-complete-feature-implementation-guide) | L1781-2196 | `step by step`, `guide`, `example`, `product` |
+| 11.x | [Step-by-Step Product Feature](#step-by-step-adding-a-new-product-feature) | L1783-2196 | `complete example`, `full feature` |
+| 12 | [Pattern Examples](#12-pattern-examples-from-codebase) | L2197-2300 | `examples`, `real code`, `reference` |
+| 12.1 | [Auth Pattern Example](#121-auth-pattern-from-auth_controllergo) | L2199-2267 | `auth example`, `authentication` |
+| 12.2 | [Client Management Example](#122-client-management-pattern-from-client_controllergo) | L2268-2300 | `client example`, `management` |
+| 13 | [Anti-Patterns to Avoid](#13-anti-patterns-to-avoid) | L2301-2460 | `wrong`, `bad`, `avoid`, `don't` |
+| 13.1 | [Business Logic in Controller](#131--business-logic-in-controller) | L2303-2347 | `controller anti-pattern`, `fat controller` |
+| 13.2 | [Direct DB in Service](#132--direct-database-access-in-service) | L2348-2378 | `service anti-pattern`, `tight coupling` |
+| 13.3 | [Standalone Functions](#133--standalone-controller-functions) | L2379-2413 | `standalone`, `function anti-pattern` |
+| 13.4 | [God Service](#134--god-service-too-many-responsibilities) | L2414-2440 | `god service`, `SRP violation` |
+| 13.5 | [Circular Dependencies](#135--circular-dependencies) | L2441-2460 | `import cycle`, `circular` |
+
+### 🎯 Quick Lookups by Task
+
+**Implementing Controllers:**
+- L921-1005: Struct-Based Controller Pattern (CRITICAL)
+- L685-731: Controller Responsibilities
+- L2303-2347: What NOT to do
+
+**Implementing Services:**
+- L1006-1040: Struct-Based Service Pattern (CRITICAL)
+- L732-810: Service Responsibilities
+- L2348-2378: What NOT to do
+
+**Implementing Repositories:**
+- L1041-1092: Function-Based Repository Pattern
+- L811-918: Repository Responsibilities
+- L156-227: Repository Pattern Theory
+
+**Understanding Flow:**
+- L1176-1268: Standard CRUD Flow
+- L1269-1318: Authentication Flow
+- L1319-1362: Transaction Flow
+
+**Complete Example:**
+- L1783-2196: Step-by-Step Product Feature (Full Implementation)
 
 ---
 

@@ -1,4 +1,4 @@
-# AI Agent Rules - IntraRemit-HubApi
+# AI Agent Rules
 
 > **CRITICAL**: These rules are MANDATORY for all AI agents working on this codebase.
 > Violating these rules will result in rejected code.
