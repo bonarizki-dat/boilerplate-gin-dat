@@ -3,7 +3,7 @@ module github.com/bonarizki-dat/boilerplate-gin-dat
 go 1.25.3
 
 require (
-	github.com/bonarizki-dat/Datatables-Gin v0.0.0-20251014080221-97841efc4815
+	github.com/bonarizki-dat/Datatables-Gin v0.0.0-20251110095450-174f5b977407
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
