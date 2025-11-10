@@ -10,13 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// setupTestRouter creates a test Gin router
-func setupTestRouter() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	return router
-}
-
 // TestRateLimitMiddleware tests the rate limiting middleware
 func TestRateLimitMiddleware(t *testing.T) {
 	t.Run("Allows requests under limit", func(t *testing.T) {

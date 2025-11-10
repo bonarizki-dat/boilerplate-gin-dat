@@ -74,3 +74,39 @@ func DeleteUser(id uint) error {
 	}
 	return nil
 }
+
+// GetUserByRefreshToken retrieves a user by refresh token.
+//
+// Returns nil if user not found or token is invalid.
+func GetUserByRefreshToken(token string) (*models.User, error) {
+	var user models.User
+	err := database.DB.Where("refresh_token = ?", token).First(&user).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // User not found is not an error
+		}
+		logger.Errorf("failed to get user by refresh token: %v", err)
+		return nil, fmt.Errorf("failed to get user by refresh token: %w", err)
+	}
+
+	return &user, nil
+}
+
+// GetUserByPasswordResetToken retrieves a user by password reset token.
+//
+// Returns nil if user not found or token is invalid.
+func GetUserByPasswordResetToken(token string) (*models.User, error) {
+	var user models.User
+	err := database.DB.Where("password_reset_token = ?", token).First(&user).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // User not found is not an error
+		}
+		logger.Errorf("failed to get user by password reset token: %v", err)
+		return nil, fmt.Errorf("failed to get user by password reset token: %w", err)
+	}
+
+	return &user, nil
+}

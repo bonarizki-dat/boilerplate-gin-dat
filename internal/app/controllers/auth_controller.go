@@ -89,3 +89,117 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 	// Success response
 	utils.Ok(c, response, "Login successful")
 }
+
+// RefreshToken handles token refresh endpoint.
+//
+// POST /auth/refresh
+// Request body: RefreshTokenRequest (JSON)
+// Response: RefreshTokenResponse with new access and refresh tokens
+func (ctrl *AuthController) RefreshToken(c *gin.Context) {
+	var req dto.RefreshTokenRequest
+
+	// Bind and validate JSON request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warnf("invalid refresh token request: %v", err)
+		utils.BadRequest(c, err, "Invalid request data")
+		return
+	}
+
+	// Call service
+	response, err := ctrl.service.RefreshToken(&req)
+	if err != nil {
+		// Handle specific errors
+		if errors.Is(err, services.ErrInvalidRefreshToken) {
+			utils.Unauthorized(c, err, "Invalid or expired refresh token")
+			return
+		}
+
+		// Handle generic errors
+		logger.Errorf("token refresh failed: %v", err)
+		utils.InternalServerError(c, err, "Failed to refresh token")
+		return
+	}
+
+	// Success response
+	utils.Ok(c, response, "Token refreshed successfully")
+}
+
+// ForgotPassword handles forgot password endpoint.
+//
+// POST /auth/forgot-password
+// Request body: ForgotPasswordRequest (JSON)
+// Response: Success message (token sent via email in production)
+func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
+	var req dto.ForgotPasswordRequest
+
+	// Bind and validate JSON request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warnf("invalid forgot password request: %v", err)
+		utils.BadRequest(c, err, "Invalid request data")
+		return
+	}
+
+	// Call service
+	resetToken, err := ctrl.service.ForgotPassword(&req)
+	if err != nil {
+		// Handle specific errors
+		if errors.Is(err, services.ErrUserNotFound) {
+			// Return success even if user not found (security best practice)
+			// Don't reveal if email exists in system
+			utils.Ok(c, nil, "If the email exists, a password reset link has been sent")
+			return
+		}
+
+		// Handle generic errors
+		logger.Errorf("forgot password failed: %v", err)
+		utils.InternalServerError(c, err, "Failed to process request")
+		return
+	}
+
+	// Success response
+	// TODO: In production, don't return the token in response
+	// Send it via email instead
+	response := map[string]string{
+		"message": "Password reset instructions sent to email",
+		"token":   resetToken, // Only for development/testing
+	}
+	utils.Ok(c, response, "Password reset initiated")
+}
+
+// ResetPassword handles password reset endpoint.
+//
+// POST /auth/reset-password
+// Request body: ResetPasswordRequest (JSON)
+// Response: Success message
+func (ctrl *AuthController) ResetPassword(c *gin.Context) {
+	var req dto.ResetPasswordRequest
+
+	// Bind and validate JSON request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warnf("invalid reset password request: %v", err)
+		utils.BadRequest(c, err, "Invalid request data")
+		return
+	}
+
+	// Call service
+	err := ctrl.service.ResetPassword(&req)
+	if err != nil {
+		// Handle specific errors
+		if errors.Is(err, services.ErrInvalidResetToken) {
+			utils.BadRequest(c, err, "Invalid reset token")
+			return
+		}
+		if errors.Is(err, services.ErrResetTokenExpired) {
+			utils.BadRequest(c, err, "Reset token has expired")
+			return
+		}
+
+		// Handle generic errors
+		logger.Errorf("password reset failed: %v", err)
+		utils.InternalServerError(c, err, "Failed to reset password")
+		return
+	}
+
+	// Success response
+	utils.Ok(c, nil, "Password reset successfully")
+}

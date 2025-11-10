@@ -21,6 +21,8 @@ func SetupRoute() *gin.Engine {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middlewares.CORSMiddleware())
+	router.Use(middlewares.RequestIDMiddleware())
+	router.Use(middlewares.MetricsMiddleware())
 
 	RegisterRoutes(router) //routes register
 

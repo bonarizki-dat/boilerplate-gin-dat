@@ -8,6 +8,7 @@ import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/routers"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/metrics"
 
 	"github.com/spf13/viper"
 )
@@ -22,6 +23,11 @@ func main() {
 	if err := config.SetupConfig(); err != nil {
 		logger.Fatalf("config SetupConfig() error: %s", err)
 	}
+
+	// Initialize metrics tracking
+	metrics.Init()
+	logger.Infof("Metrics tracking initialized")
+
 	masterDSN, replicaDSN := config.DbConfiguration()
 
 	if err := database.DbConnection(masterDSN, replicaDSN); err != nil {

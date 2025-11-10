@@ -23,6 +23,7 @@ var defaultHTTPMessages = map[int]string{
 	http.StatusTooManyRequests:     "Too Many Requests",
 	http.StatusInternalServerError: "Internal Server Error",
 	http.StatusBadGateway:          "Bad Gateway",
+	http.StatusServiceUnavailable:  "Service Unavailable",
 }
 
 // FormatValidationErrors converts validator.ValidationErrors into a map of field -> error message.
@@ -213,4 +214,9 @@ func InternalServerError(c *gin.Context, err error, message string) {
 // BadGateway is a shortcut to send a 502 Bad Gateway response
 func BadGateway(c *gin.Context, err error, message string) {
 	HandleErrors(c, http.StatusBadGateway, err, message)
+}
+
+// ServiceUnavailable is a shortcut to send a 503 Service Unavailable response
+func ServiceUnavailable(c *gin.Context, err error, message string) {
+	HandleErrors(c, http.StatusServiceUnavailable, err, message)
 }

@@ -37,11 +37,12 @@ This boilerplate serves as the **foundation for all Go API projects** in our org
 ### 🎁 What You Get
 
 Start your next API project with:
-- ✅ **JWT Authentication** - Login, register, protected routes ready to go
+- ✅ **JWT Authentication** - Login, register, refresh token, password reset ready to go
 - ✅ **Clean Architecture** - Proven layered structure (Controllers → Services → Repositories)
 - ✅ **Complete Documentation** - 5000+ lines covering every aspect
 - ✅ **Testing Infrastructure** - Unit tests, integration tests, examples included
 - ✅ **Security Built-in** - SQL injection prevention, password hashing, token security
+- ✅ **Observability Ready** - Health checks, metrics, request tracing (<1% overhead)
 - ✅ **Database Ready** - PostgreSQL with GORM, migrations, master-replica support
 - ✅ **Docker Support** - Development and production configurations
 - ✅ **AI-Ready** - Comprehensive guides for AI-assisted development
@@ -54,13 +55,15 @@ Start your next API project with:
 
 ### Core Features
 
-- 🔐 **JWT Authentication** - Secure login/register endpoints with token-based auth
+- 🔐 **JWT Authentication** - Secure login/register with refresh token mechanism and password reset
 - 🏗️ **Clean Architecture** - Layered design with clear separation of concerns
 - 🗄️ **GORM Integration** - PostgreSQL with master-replica configuration
 - ✅ **Request Validation** - Built-in validation using go-playground/validator
 - 📝 **Structured Logging** - Logrus integration with custom formatting
 - 🔌 **Middleware Support** - CORS, Auth, Rate Limiting middleware
 - 🛡️ **Rate Limiting** - Per-IP rate limiting to prevent abuse and brute force attacks
+- 📊 **Observability** - Health checks, metrics, and request tracing (<1% overhead)
+- ⚙️ **Environment Management** - Config validation, environment detection, secrets management
 - 🗃️ **Database Migrations** - SQL migrations and AutoMigrate support
 - 🐳 **Docker Support** - Dev and prod Docker configurations with live reload
 - 🧪 **Comprehensive Testing** - Service and controller test examples
@@ -153,12 +156,16 @@ If you're an AI agent or using AI-assisted development:
 | [docs/00_AI_CRITICAL_RULES.md](docs/00_AI_CRITICAL_RULES.md) | 100 lines | Critical rules summary |
 | [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) | 1955 lines | Comprehensive coding standards |
 | [docs/DESIGN_PATTERNS.md](docs/DESIGN_PATTERNS.md) | 2479 lines | Architecture and design patterns |
+| [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | Full | Health checks, metrics, request tracing |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Full | Environment management & validation |
 | [TESTING.md](TESTING.md) | Full | Complete testing guide |
 | [tests/README.md](tests/README.md) | Quick | Test organization |
 
 **Quick Links:**
 - 🏗️ [Architecture Overview](#-architecture)
 - 🔐 [Authentication Guide](#-authentication-endpoints)
+- 📊 [Observability Guide](docs/OBSERVABILITY.md) - Health checks, metrics, tracing
+- ⚙️ [Configuration Guide](docs/CONFIGURATION.md) - Environment management
 - 🧪 [Testing Guide](TESTING.md)
 - 🗄️ [Database Migrations](internal/adapters/database/migrations/sql/README.md)
 - 🐳 [Docker Setup](#-docker-development)
@@ -280,6 +287,7 @@ Content-Type: application/json
       "email": "john@example.com"
     },
     "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "a3d5e8f9b2c1d4e6f7a8b9c0d1e2f3a4...",
     "token_type": "Bearer"
   },
   "errors": null
@@ -308,8 +316,76 @@ Content-Type: application/json
       "email": "john@example.com"
     },
     "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "a3d5e8f9b2c1d4e6f7a8b9c0d1e2f3a4...",
     "token_type": "Bearer"
   },
+  "errors": null
+}
+```
+
+#### Refresh Token
+
+```bash
+POST /auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "a3d5e8f9b2c1d4e6f7a8b9c0d1e2f3a4..."
+}
+
+# Response (200 OK)
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "b4e6f8a0c2d4e6f8a0b2c4d6e8f0a2b4...",
+    "token_type": "Bearer"
+  },
+  "errors": null
+}
+```
+
+#### Forgot Password
+
+```bash
+POST /auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "john@example.com"
+}
+
+# Response (200 OK)
+{
+  "success": true,
+  "message": "Password reset initiated",
+  "data": {
+    "message": "Password reset instructions sent to email",
+    "token": "c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f5..."  // Only in dev mode
+  },
+  "errors": null
+}
+```
+
+**Note:** In production, the reset token should be sent via email, not in the response.
+
+#### Reset Password
+
+```bash
+POST /auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f5...",
+  "new_password": "NewSecurePass456!"
+}
+
+# Response (200 OK)
+{
+  "success": true,
+  "message": "Password reset successfully",
+  "data": null,
   "errors": null
 }
 ```
@@ -335,7 +411,8 @@ Authorization: Bearer <your-jwt-token>
 
 ### Public Endpoints
 
-- `GET /health` - Health check endpoint
+- `GET /health` - Health check endpoint (returns database status, uptime)
+- `GET /metrics` - Metrics endpoint (request counters, error rates, uptime)
 - `GET /datatables` - DataTables example with pagination/search
 
 **Standard Response Format:**
@@ -743,6 +820,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Critical Rules](docs/00_AI_CRITICAL_RULES.md)
 - [Coding Standards](docs/CODING_STANDARDS.md)
 - [Design Patterns](docs/DESIGN_PATTERNS.md)
+- [Observability Guide](docs/OBSERVABILITY.md)
+- [Configuration Guide](docs/CONFIGURATION.md)
 - [Testing Guide](TESTING.md)
 
 ---

@@ -60,6 +60,22 @@
 | **Enum/Constants** | CODING_STANDARDS.md | 159-187 | `enums`, `pkg/enums`, `const`, `iota` |
 | **Import Cycles** | CODING_STANDARDS.md | 188-217 | `import cycle`, `pkg →`, `internal →` |
 
+### Observability
+| Topic | File | Lines | Keywords |
+|-------|------|-------|----------|
+| **Health Checks** | OBSERVABILITY.md | 22-130 | `/health`, `GET /health`, `database check`, `Kubernetes`, `Docker` |
+| **Metrics** | OBSERVABILITY.md | 132-243 | `/metrics`, `request counters`, `uptime`, `error rate` |
+| **Request Tracing** | OBSERVABILITY.md | 245-336 | `request ID`, `UUID`, `X-Request-ID`, `tracing`, `grep logs` |
+| **Performance Impact** | OBSERVABILITY.md | 387-435 | `overhead`, `benchmark`, `0.12%`, `negligible` |
+
+### Configuration
+| Topic | File | Lines | Keywords |
+|-------|------|-------|----------|
+| **Environment Detection** | CONFIGURATION.md | - | `APP_ENV`, `IsDevelopment()`, `IsProduction()`, `IsStaging()` |
+| **Config Validation** | CONFIGURATION.md | - | `ValidateConfig()`, `startup`, `fail-fast`, `required keys` |
+| **Secrets Management** | CONFIGURATION.md | - | `JWT_SECRET`, `SECRET`, `openssl rand`, `32 characters` |
+| **Environment Helpers** | CONFIGURATION.md | - | `config.IsDevelopment()`, `config.IsDebugEnabled()` |
+
 ---
 
 ## 📚 Full Document Structure

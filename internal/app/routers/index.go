@@ -15,8 +15,10 @@ func RegisterRoutes(route *gin.Engine) {
 		ctx.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Route Not Found"})
 	})
 
+	// Health check and metrics routes
+	RegisterHealthRoutes(route)
+
 	// Public routes
-	route.GET("/health", func(ctx *gin.Context) { ctx.JSON(http.StatusOK, gin.H{"live": "ok"}) })
 	route.GET("/datatables", controllers.GetDataDatatables)
 
 	// Initialize services
@@ -32,6 +34,9 @@ func RegisterRoutes(route *gin.Engine) {
 	{
 		authRoutes.POST("/register", authController.Register)
 		authRoutes.POST("/login", authController.Login)
+		authRoutes.POST("/refresh", authController.RefreshToken)
+		authRoutes.POST("/forgot-password", authController.ForgotPassword)
+		authRoutes.POST("/reset-password", authController.ResetPassword)
 	}
 
 	// Protected routes (require authentication)

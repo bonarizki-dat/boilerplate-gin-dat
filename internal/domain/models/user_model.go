@@ -13,6 +13,14 @@ type User struct {
 	Name      string     `json:"name" gorm:"type:varchar(255);not null"`
 	Email     string     `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
 	Password  string     `json:"-" gorm:"type:varchar(255);not null"` // Never expose in JSON
+
+	// Refresh token for JWT token refresh mechanism
+	RefreshToken string `json:"-" gorm:"type:varchar(500);index"`
+
+	// Password reset token and expiry for forgot password flow
+	PasswordResetToken  string     `json:"-" gorm:"type:varchar(255);index"`
+	PasswordResetExpiry *time.Time `json:"-" gorm:"type:timestamp"`
+
 	CreatedAt time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index"` // Soft delete support

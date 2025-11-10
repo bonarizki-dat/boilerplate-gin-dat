@@ -53,6 +53,8 @@ Welcome to the project documentation. This guide helps you navigate all document
 |------|---------|
 | **CODING_STANDARDS.md** | Comprehensive coding standards, naming conventions, best practices |
 | **DESIGN_PATTERNS.md** | Architecture patterns, layer responsibilities, implementation guides |
+| **CONFIGURATION.md** | Environment configuration, validation, secrets management |
+| **OBSERVABILITY.md** | Health checks, metrics, request tracing, monitoring guide |
 | **AI_QUICK_REFERENCE.md** | Quick templates and decision trees |
 | **00_AI_CRITICAL_RULES.md** | Quick reference for critical rules |
 
@@ -89,6 +91,16 @@ Welcome to the project documentation. This guide helps you navigate all document
 **Use dependency injection:**
 1. Read: `00_AI_CRITICAL_RULES.md` (Tier 0, Rule 4)
 2. Details: `DESIGN_PATTERNS.md` lines 439-492
+
+**Setup observability (health checks, metrics):**
+1. Guide: `OBSERVABILITY.md`
+2. Endpoints: GET /health, GET /metrics
+3. Implementation: Middleware-based, <1% overhead
+
+**Configure environment:**
+1. Guide: `CONFIGURATION.md`
+2. Validation: Startup fail-fast
+3. Environment helpers: IsDevelopment(), IsProduction()
 
 ---
 
@@ -156,7 +168,9 @@ Welcome to the project documentation. This guide helps you navigate all document
 **Last Updated:** 2025-11-09
 
 **Recent Changes:**
-- Added `DOCS_INDEX.md` - Master index with line number refs (NEW - 2025-11-09)
+- Added `OBSERVABILITY.md` - Phase 1 observability (health checks, metrics, tracing) (2025-11-09)
+- Added `CONFIGURATION.md` - Environment management & validation (2025-11-09)
+- Added `DOCS_INDEX.md` - Master index with line number refs (2025-11-09)
 - Enhanced TOCs in CODING_STANDARDS.md & DESIGN_PATTERNS.md with keywords (2025-11-09)
 - Added `00_AI_CRITICAL_RULES.md` (2025-11-09)
 - Added router organization standards (2025-11-09)
