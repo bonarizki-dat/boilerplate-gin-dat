@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"time"
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/adapters/database"
@@ -74,7 +75,9 @@ func (s *HealthService) checkDatabase() string {
 	}
 
 	// Ping database with timeout
-	if err := sqlDB.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(ctx); err != nil {
 		logger.Errorf("health check: database ping failed: %v", err)
 		return "error"
 	}

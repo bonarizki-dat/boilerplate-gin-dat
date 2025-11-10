@@ -5,6 +5,7 @@ import (
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -157,13 +158,19 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 	}
 
 	// Success response
-	// TODO: In production, don't return the token in response
-	// Send it via email instead
-	response := map[string]string{
-		"message": "Password reset instructions sent to email",
-		"token":   resetToken, // Only for development/testing
+	// In production, don't return the token in response; send via email
+	if config.IsProduction() {
+		utils.Ok(c, map[string]string{
+			"message": "Password reset instructions sent to email",
+		}, "Password reset initiated")
+		return
 	}
-	utils.Ok(c, response, "Password reset initiated")
+
+	// Non-production: include token for development/testing convenience
+	utils.Ok(c, map[string]string{
+		"message": "Password reset instructions sent to email",
+		"token":   resetToken,
+	}, "Password reset initiated")
 }
 
 // ResetPassword handles password reset endpoint.

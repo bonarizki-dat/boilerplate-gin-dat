@@ -1,12 +1,12 @@
 package database
 
 import (
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 	"gorm.io/plugin/dbresolver"
-	"log"
 )
 
 var (
@@ -21,13 +21,13 @@ func DbConnection(masterDSN, replicaDSN string) error {
 	logMode := viper.GetBool("DB_LOG_MODE")
 	debug := viper.GetBool("DEBUG")
 
-	loglevel := logger.Silent
+	loglevel := gormlogger.Silent
 	if logMode {
-		loglevel = logger.Info
+		loglevel = gormlogger.Info
 	}
 
 	db, err = gorm.Open(postgres.Open(masterDSN), &gorm.Config{
-		Logger: logger.Default.LogMode(loglevel),
+		Logger: gormlogger.Default.LogMode(loglevel),
 	})
 	if !debug {
 		db.Use(dbresolver.Register(dbresolver.Config{
@@ -38,7 +38,7 @@ func DbConnection(masterDSN, replicaDSN string) error {
 		}))
 	}
 	if err != nil {
-		log.Fatalf("Db connection error")
+		logger.Errorf("database connection error: %v", err)
 		return err
 	}
 	DB = db

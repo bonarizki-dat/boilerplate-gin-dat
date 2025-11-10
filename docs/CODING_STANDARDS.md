@@ -152,6 +152,44 @@ project/
 └── main.go                   # Application entry point
 ```
 
+#### 1.2.1 Feature Grouping for Multi-file Controllers/Services
+
+```
+✅ MUST: If a controller or service is split into multiple files (due to the 300-line/file or 100-line/function limits), those files MUST be grouped under a single feature folder to avoid scattering.
+```
+
+**Purpose:**
+- Keep files organized by feature
+- Improve navigation and code ownership
+- Avoid mixing many feature files in a flat directory
+
+**Examples:**
+```
+internal/app/controllers/
+├── auth/
+│   ├── auth_controller.go
+│   ├── auth_controller_handlers.go
+│   └── auth_controller_validators.go
+├── user/
+│   ├── user_controller.go
+│   └── user_controller_helpers.go
+└── health_controller.go
+
+internal/app/services/
+├── auth/
+│   ├── auth_service.go
+│   ├── auth_service_reset.go
+│   └── auth_service_validation.go
+└── user/
+    ├── user_service.go
+    └── user_service_rules.go
+```
+
+**Naming Rules:**
+- Folder name must be the feature: `auth/`, `user/`, `order/`
+- All files in the folder use `snake_case` and keep a consistent `package` (`package controllers` or `package services`)
+- Avoid deep nested folders unless necessary (max 1 level for feature grouping)
+
 ### 1.3 File Naming
 
 **Rules:**
@@ -765,6 +803,17 @@ func CreateUser(user *models.User) error {
 
 ## 6. DOCUMENTATION
 
+### 6.0 Comment Language Policy
+
+```
+✅ MUST: All code comments, package comments, and documentation MUST be written in English.
+```
+
+Rationale:
+- Konsistensi lintas tim dan kontribusi open-source
+- Memudahkan code review dan adopsi lintas region
+- Mempercepat pemrosesan oleh tooling/AI yang berbahasa Inggris
+
 ### 6.1 Package Documentation
 
 **MUST include package comment in ONE file per package:**
@@ -863,7 +912,7 @@ type CreateUserRequest struct {  // No struct comment!
 
 ### 6.4 Inline Comments
 
-**Use sparingly for complex logic only:**
+**Use sparingly for complex logic only (in English):**
 
 ```go
 ✅ CORRECT (complex logic needs explanation):

@@ -723,6 +723,25 @@ project-name/
    ❌ internal/app/           → package users, package clients (multiple packages)
    ```
 
+2. **Group multi-file controllers/services into a feature folder**
+   ```
+   ✅ CORRECT:
+   internal/app/controllers/auth/
+       ├── auth_controller.go
+       ├── auth_controller_handlers.go
+       └── auth_controller_validators.go
+
+   internal/app/services/user/
+       ├── user_service.go
+       └── user_service_rules.go
+
+   ❌ WRONG:
+   internal/app/controllers/
+       ├── auth_controller.go
+       ├── auth_controller_handlers.go
+       └── user_controller.go            // Mixed features at the same directory level
+   ```
+
 2. **Package naming:**
    - Lowercase, single word
    - No underscores, no dashes

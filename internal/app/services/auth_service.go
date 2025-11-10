@@ -67,7 +67,7 @@ func (s *AuthService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, err
 	}
 
 	// Save to database
-	if err := repositories.CreateUser(user); err != nil {
+	if err = repositories.CreateUser(user); err != nil {
 		logger.Errorf("failed to create user: %v", err)
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
@@ -127,7 +127,7 @@ func (s *AuthService) Login(req *dto.LoginRequest) (*dto.AuthResponse, error) {
 	}
 
 	// Verify password
-	if err := s.verifyPassword(user.Password, req.Password); err != nil {
+	if err = s.verifyPassword(user.Password, req.Password); err != nil {
 		logger.Warnf("login attempt with invalid password: %s", req.Email)
 		return nil, ErrInvalidCredentials
 	}
