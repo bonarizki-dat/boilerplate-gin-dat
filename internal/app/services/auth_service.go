@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -18,12 +19,12 @@ import (
 
 // Common errors for auth service
 var (
-	ErrEmailAlreadyExists      = errors.New("email already exists")
-	ErrInvalidCredentials      = errors.New("invalid email or password")
-	ErrUserNotFound            = errors.New("user not found")
-	ErrInvalidRefreshToken     = errors.New("invalid or expired refresh token")
-	ErrInvalidResetToken       = errors.New("invalid or expired reset token")
-	ErrResetTokenExpired       = errors.New("reset token has expired")
+	ErrEmailAlreadyExists  = errors.New("email already exists")
+	ErrInvalidCredentials  = errors.New("invalid email or password")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrInvalidRefreshToken = errors.New("invalid or expired refresh token")
+	ErrInvalidResetToken   = errors.New("invalid or expired reset token")
+	ErrResetTokenExpired   = errors.New("reset token has expired")
 )
 
 // AuthService handles authentication-related business logic
@@ -40,8 +41,10 @@ func NewAuthService() *AuthService {
 //
 // Returns ErrEmailAlreadyExists if email is already registered.
 // Password is hashed using bcrypt before storage.
-func (s *AuthService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, error) {
-	// Check if email already exists
+func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (resp *dto.AuthResponse, err error) {
+	span := logger.Start(ctx, "AuthService", "Register")
+	defer span.Finish(err)
+
 	existingUser, err := repositories.GetUserByEmail(req.Email)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check email: %w", err)
@@ -113,8 +116,10 @@ func (s *AuthService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, err
 // Login authenticates a user with email and password.
 //
 // Returns ErrInvalidCredentials if email or password is incorrect.
-func (s *AuthService) Login(req *dto.LoginRequest) (*dto.AuthResponse, error) {
-	// Get user by email
+func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *dto.AuthResponse, err error) {
+	span := logger.Start(ctx, "AuthService", "Login")
+	defer span.Finish(err)
+
 	user, err := repositories.GetUserByEmail(req.Email)
 	if err != nil {
 		logger.Errorf("failed to get user: %v", err)
@@ -268,8 +273,10 @@ func (s *AuthService) generateRefreshToken() (string, error) {
 // RefreshToken generates new access and refresh tokens using a valid refresh token.
 //
 // Returns ErrInvalidRefreshToken if the refresh token is invalid or not found.
-func (s *AuthService) RefreshToken(req *dto.RefreshTokenRequest) (*dto.RefreshTokenResponse, error) {
-	// Get user by refresh token
+func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (resp *dto.RefreshTokenResponse, err error) {
+	span := logger.Start(ctx, "AuthService", "RefreshToken")
+	defer span.Finish(err)
+
 	user, err := repositories.GetUserByRefreshToken(req.RefreshToken)
 	if err != nil {
 		logger.Errorf("failed to get user by refresh token: %v", err)
@@ -318,8 +325,10 @@ func (s *AuthService) RefreshToken(req *dto.RefreshTokenRequest) (*dto.RefreshTo
 //
 // In production, this token should be sent via email instead of returned in response.
 // Returns ErrUserNotFound if email doesn't exist.
-func (s *AuthService) ForgotPassword(req *dto.ForgotPasswordRequest) (string, error) {
-	// Get user by email
+func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswordRequest) (token string, err error) {
+	span := logger.Start(ctx, "AuthService", "ForgotPassword")
+	defer span.Finish(err)
+
 	user, err := repositories.GetUserByEmail(req.Email)
 	if err != nil {
 		logger.Errorf("failed to get user by email: %v", err)
@@ -360,8 +369,10 @@ func (s *AuthService) ForgotPassword(req *dto.ForgotPasswordRequest) (string, er
 //
 // Returns ErrInvalidResetToken if token is invalid.
 // Returns ErrResetTokenExpired if token has expired.
-func (s *AuthService) ResetPassword(req *dto.ResetPasswordRequest) error {
-	// Get user by reset token
+func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordRequest) (err error) {
+	span := logger.Start(ctx, "AuthService", "ResetPassword")
+	defer span.Finish(err)
+
 	user, err := repositories.GetUserByPasswordResetToken(req.Token)
 	if err != nil {
 		logger.Errorf("failed to get user by reset token: %v", err)

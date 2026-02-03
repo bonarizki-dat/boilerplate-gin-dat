@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -23,9 +24,12 @@ func NewHealthController(service *services.HealthService) *HealthController {
 // GET /health
 // Returns health status of the application and its dependencies.
 func (ctrl *HealthController) Health(c *gin.Context) {
-	response := ctrl.service.CheckHealth()
+	requestID := c.GetString("request_id")
+	span := logger.StartWithRequestID(requestID, "HealthController", "Health")
+	defer span.Finish(nil)
 
-	// Return 503 if unhealthy, 200 if healthy
+	response := ctrl.service.CheckHealth(c.Request.Context())
+
 	if response.Status == "unhealthy" {
 		c.JSON(503, gin.H{
 			"success": false,
@@ -44,6 +48,10 @@ func (ctrl *HealthController) Health(c *gin.Context) {
 // GET /metrics
 // Returns basic request counters and uptime statistics.
 func (ctrl *HealthController) Metrics(c *gin.Context) {
-	response := ctrl.service.GetMetrics()
+	requestID := c.GetString("request_id")
+	span := logger.StartWithRequestID(requestID, "HealthController", "Metrics")
+	defer span.Finish(nil)
+
+	response := ctrl.service.GetMetrics(c.Request.Context())
 	utils.Ok(c, response, "Metrics retrieved successfully")
 }

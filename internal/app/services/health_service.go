@@ -24,14 +24,15 @@ func NewHealthService() *HealthService {
 //
 // Checks database connectivity and returns overall health status.
 // Returns "healthy" only if all checks pass.
-func (s *HealthService) CheckHealth() *dto.HealthResponse {
+func (s *HealthService) CheckHealth(ctx context.Context) *dto.HealthResponse {
+	span := logger.Start(ctx, "HealthService", "CheckHealth")
+	defer span.Finish(nil)
+
 	checks := make(map[string]string)
 
-	// Check database connectivity
 	dbStatus := s.checkDatabase()
 	checks["database"] = dbStatus
 
-	// Determine overall status
 	overallStatus := "healthy"
 	if dbStatus != "ok" {
 		overallStatus = "unhealthy"
@@ -48,7 +49,10 @@ func (s *HealthService) CheckHealth() *dto.HealthResponse {
 // GetMetrics returns application metrics.
 //
 // Returns request counters and uptime statistics.
-func (s *HealthService) GetMetrics() *dto.MetricsResponse {
+func (s *HealthService) GetMetrics(ctx context.Context) *dto.MetricsResponse {
+	span := logger.Start(ctx, "HealthService", "GetMetrics")
+	defer span.Finish(nil)
+
 	return &dto.MetricsResponse{
 		TotalRequests:   metrics.GetTotalRequests(),
 		SuccessRequests: metrics.GetSuccessRequests(),

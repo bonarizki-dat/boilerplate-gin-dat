@@ -2,11 +2,13 @@ package logger
 
 import (
 	"bytes"
-	"github.com/sirupsen/logrus"
+	"context"
 	"io"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 var logger = logrus.New()
@@ -81,27 +83,105 @@ func Fatalf(format string, args ...interface{}) {
 	}
 }
 
+// contextKey type for context values to avoid collisions.
+type contextKey string
+
+// RequestIDContextKey is the key used to store request_id in context.Context.
+// Middleware should set it via context.WithValue(c.Request.Context(), logger.RequestIDContextKey, requestID).
+const RequestIDContextKey contextKey = "request_id"
+
 // Formatter implements logrus.Formatter
 type formatter struct {
 	prefix string
 }
 
-// Format builds the log message according to custom format
+// Format builds the log message according to custom format.
+// If entry has "request_id" in Data, prepends [request_id] to the message.
 func (f *formatter) Format(entry *logrus.Entry) ([]byte, error) {
 	var sb bytes.Buffer
 
-	// Write log level in uppercase
 	sb.WriteString(strings.ToUpper(entry.Level.String()))
 	sb.WriteString(" ")
-	// Write timestamp in RFC3339 format
 	sb.WriteString(entry.Time.Format(time.RFC3339))
 	sb.WriteString(" ")
-	// Write prefix (if any)
 	sb.WriteString(f.prefix)
-	// Write the actual log message
+	if rid, ok := entry.Data["request_id"]; ok {
+		if ridStr, ok := rid.(string); ok && ridStr != "" {
+			sb.WriteString("[")
+			sb.WriteString(ridStr)
+			sb.WriteString("] ")
+		}
+	}
 	sb.WriteString(entry.Message)
-	// Ensure each log entry ends with a newline
 	sb.WriteByte('\n')
 
 	return sb.Bytes(), nil
+}
+
+// WithRequestID returns a log entry that includes request_id in every log line.
+func WithRequestID(requestID string) *logrus.Entry {
+	return logger.WithField("request_id", requestID)
+}
+
+// FromContext returns a log entry with request_id from ctx if present; otherwise without request_id.
+func FromContext(ctx context.Context) *logrus.Entry {
+	if ctx == nil {
+		return logger.WithFields(logrus.Fields{})
+	}
+	if rid, ok := ctx.Value(RequestIDContextKey).(string); ok && rid != "" {
+		return logger.WithField("request_id", rid)
+	}
+	return logger.WithFields(logrus.Fields{})
+}
+
+// Span holds start time and component/method for START/FINISH logging.
+type Span struct {
+	requestID string
+	component string
+	method    string
+	start     time.Time
+	entry     *logrus.Entry
+}
+
+// StartWithRequestID begins a span and logs START. Use for controllers (have request_id from gin).
+func StartWithRequestID(requestID, component, method string) *Span {
+	s := &Span{
+		requestID: requestID,
+		component: component,
+		method:    method,
+		start:     time.Now(),
+		entry:     WithRequestID(requestID),
+	}
+	s.entry.Infof("START %s.%s", component, method)
+	return s
+}
+
+// Start begins a span using request_id from ctx and logs START. Use for services (receive ctx).
+func Start(ctx context.Context, component, method string) *Span {
+	entry := FromContext(ctx)
+	requestID := ""
+	if ctx != nil {
+		if rid, ok := ctx.Value(RequestIDContextKey).(string); ok {
+			requestID = rid
+		}
+	}
+	s := &Span{
+		requestID: requestID,
+		component: component,
+		method:    method,
+		start:     time.Now(),
+		entry:     entry,
+	}
+	s.entry.Infof("START %s.%s", component, method)
+	return s
+}
+
+// Finish logs FINISH with SUCCESS or FAIL and duration. Call with err from handler return.
+func (s *Span) Finish(err error) {
+	dur := time.Since(s.start).Milliseconds()
+	status := "SUCCESS"
+	if err != nil {
+		status = "FAIL"
+	}
+	s.entry.Infof("FINISH %s.%s (%s) duration=%dms", s.component, s.method, status, dur)
 }

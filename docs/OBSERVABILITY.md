@@ -392,9 +392,9 @@ Request IDs allow you to track a single request's journey through your applicati
 
 ### How It Works
 
-1. **Request arrives** → Middleware generates UUID
-2. **ID stored in context** → Available to all handlers/services
-3. **ID added to logs** → Can grep logs by request ID
+1. **Request arrives** → Middleware generates UUID (or uses `X-Request-ID` header)
+2. **ID stored in context** → Set in gin context and in `c.Request.Context()` so handlers and services can access it
+3. **ID added to every log line** → Format: `LEVEL timestamp [request_id] message`; grep logs by request ID
 4. **ID returned in response** → Client can reference for support
 
 ### Request ID Header
@@ -409,52 +409,52 @@ X-Request-ID: 550e8400-e29b-41d4-a716-446655440000
 X-Request-ID: 550e8400-e29b-41d4-a716-446655440000
 ```
 
+### Structured Request Logging (ARRIVED / START / FINISH / RESPONSE SENT)
+
+Every request produces a consistent log sequence so you can trace flow and duration:
+
+- **ARRIVED REQUEST** — Logged by middleware at request entry (IP, method, path, query, body; sensitive fields masked).
+- **START** — Logged at entry of each controller and service method (e.g. `START HealthController.Health`, `START HealthService.CheckHealth`).
+- **FINISH** — Logged at exit with success/fail and duration (e.g. `FINISH HealthService.CheckHealth (SUCCESS) duration=24ms`).
+- **RESPONSE SENT** — Logged by middleware after response (status, duration, size, body; sensitive fields masked).
+
+START/FINISH are always on (no DEBUG or env flag). Services receive `context.Context` so request_id flows from HTTP to service layer.
+
+### Sensitive Data Masking
+
+Request and response bodies and query strings are logged in full **after masking** sensitive fields. Field names (case-insensitive) such as `password`, `token`, `secret`, `authorization`, `refresh_token`, `access_token`, `api_key`, `cookie` are replaced with `***MASKED***` in the logged value. This keeps logs useful for debugging while avoiding exposure of secrets.
+
 ### Using Request ID in Code
 
 **In Controllers:**
 ```go
 func (ctrl *UserController) GetUser(c *gin.Context) {
     requestID := c.GetString("request_id")
+    span := logger.StartWithRequestID(requestID, "UserController", "GetUser")
+    defer span.Finish(err)
 
-    logger.Infof("[%s] Getting user %s", requestID, userID)
-
-    user, err := ctrl.service.GetUser(userID)
+    user, err := ctrl.service.GetUser(c.Request.Context(), userID)
     if err != nil {
-        logger.Errorf("[%s] Failed to get user: %v", requestID, err)
         utils.InternalServerError(c, err, "Failed to get user")
         return
     }
-
     utils.Ok(c, user, "User retrieved successfully")
 }
 ```
 
-**In Services:**
+**In Services (use context.Context):**
 ```go
-func (s *UserService) CreateUser(req *dto.CreateUserRequest, requestID string) (*models.User, error) {
-    logger.Infof("[%s] Creating user: %s", requestID, req.Email)
+func (s *UserService) GetUser(ctx context.Context, userID string) (*models.User, error) {
+    span := logger.Start(ctx, "UserService", "GetUser")
+    defer span.Finish(err)
 
+    logger.FromContext(ctx).Infof("fetching user %s", userID)
     // Business logic...
-
-    logger.Infof("[%s] User created successfully: ID=%d", requestID, user.ID)
     return user, nil
 }
 ```
 
-**Pass Through Service Calls:**
-```go
-// Controller
-func (ctrl *AuthController) Register(c *gin.Context) {
-    requestID := c.GetString("request_id")
-    response, err := ctrl.service.Register(&req, requestID)
-}
-
-// Service
-func (s *AuthService) Register(req *dto.RegisterRequest, requestID string) (*dto.AuthResponse, error) {
-    logger.Infof("[%s] Registration attempt: %s", requestID, req.Email)
-    // ...
-}
-```
+Request ID is stored in `c.Request.Context()` by middleware. Controllers pass `c.Request.Context()` into services; services use `logger.FromContext(ctx)` or `logger.Start(ctx, component, method)` so every log line includes the same request_id.
 
 ### Searching Logs by Request ID
 
@@ -462,11 +462,13 @@ func (s *AuthService) Register(req *dto.RegisterRequest, requestID string) (*dto
 # Find all logs for a specific request
 grep "550e8400-e29b-41d4-a716-446655440000" app.log
 
-# Example output:
-# [2025-11-09 10:30:00] [550e8400...] Registration attempt: john@example.com
-# [2025-11-09 10:30:01] [550e8400...] Checking if email exists
-# [2025-11-09 10:30:01] [550e8400...] Hashing password
-# [2025-11-09 10:30:02] [550e8400...] User created successfully: ID=123
+# Example output (structured request logging):
+# INFO 2025-11-09T10:30:00+07:00 [550e8400-e29b-41d4-a716-446655440000] ARRIVED REQUEST from IP=192.168.1.1 method=POST path=/auth/register query= body={}
+# INFO 2025-11-09T10:30:00+07:00 [550e8400-e29b-41d4-a716-446655440000] START AuthController.Register
+# INFO 2025-11-09T10:30:00+07:00 [550e8400-e29b-41d4-a716-446655440000] START AuthService.Register
+# INFO 2025-11-09T10:30:01+07:00 [550e8400-e29b-41d4-a716-446655440000] FINISH AuthService.Register (SUCCESS) duration=12ms
+# INFO 2025-11-09T10:30:01+07:00 [550e8400-e29b-41d4-a716-446655440000] FINISH AuthController.Register (SUCCESS) duration=12ms
+# INFO 2025-11-09T10:30:01+07:00 [550e8400-e29b-41d4-a716-446655440000] RESPONSE SENT status=201 duration=15ms size=512 bytes body={...}
 ```
 
 ### Client Usage
@@ -837,22 +839,20 @@ Logs don't show request ID even though middleware is active
 
 **Solutions:**
 
-1. **Update logging to include request ID:**
+1. **Use request-scoped logger so request_id is included:**
 ```go
-// Before
-logger.Infof("User created")
-
-// After
+// In controllers
 requestID := c.GetString("request_id")
-logger.Infof("[%s] User created", requestID)
+logger.WithRequestID(requestID).Infof("User created")
+
+// In services (receive ctx from controller)
+logger.FromContext(ctx).Infof("User created")
 ```
 
-2. **Use structured logging:**
+2. **Use START/FINISH spans for consistent tracing:**
 ```go
-logger.WithFields(logger.Fields{
-    "request_id": requestID,
-    "user_id": userID,
-}).Info("User created")
+span := logger.StartWithRequestID(requestID, "UserController", "Create")
+defer span.Finish(err)
 ```
 
 ### High Memory Usage

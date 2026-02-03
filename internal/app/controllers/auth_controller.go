@@ -29,31 +29,29 @@ func NewAuthController(service *services.AuthService) *AuthController {
 // Request body: RegisterRequest (JSON)
 // Response: AuthResponse with user info and JWT token
 func (ctrl *AuthController) Register(c *gin.Context) {
-	var req dto.RegisterRequest
+	var err error
+	requestID := c.GetString("request_id")
+	span := logger.StartWithRequestID(requestID, "AuthController", "Register")
+	defer span.Finish(err)
 
-	// Bind and validate JSON request
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var req dto.RegisterRequest
+	if err = c.ShouldBindJSON(&req); err != nil {
 		logger.Warnf("invalid registration request: %v", err)
 		utils.BadRequest(c, err, "Invalid request data")
 		return
 	}
 
-	// Call service
-	response, err := ctrl.service.Register(&req)
+	response, err := ctrl.service.Register(c.Request.Context(), &req)
 	if err != nil {
-		// Handle specific errors
 		if errors.Is(err, services.ErrEmailAlreadyExists) {
 			utils.Conflict(c, err, "Email already exists")
 			return
 		}
-
-		// Handle generic errors
 		logger.Errorf("registration failed: %v", err)
 		utils.InternalServerError(c, err, "Failed to register user")
 		return
 	}
 
-	// Success response
 	utils.Created(c, response, "User registered successfully")
 }
 
@@ -63,31 +61,29 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 // Request body: LoginRequest (JSON)
 // Response: AuthResponse with user info and JWT token
 func (ctrl *AuthController) Login(c *gin.Context) {
-	var req dto.LoginRequest
+	var err error
+	requestID := c.GetString("request_id")
+	span := logger.StartWithRequestID(requestID, "AuthController", "Login")
+	defer span.Finish(err)
 
-	// Bind and validate JSON request
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var req dto.LoginRequest
+	if err = c.ShouldBindJSON(&req); err != nil {
 		logger.Warnf("invalid login request: %v", err)
 		utils.BadRequest(c, err, "Invalid request data")
 		return
 	}
 
-	// Call service
-	response, err := ctrl.service.Login(&req)
+	response, err := ctrl.service.Login(c.Request.Context(), &req)
 	if err != nil {
-		// Handle specific errors
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			utils.Unauthorized(c, err, "Invalid email or password")
 			return
 		}
-
-		// Handle generic errors
 		logger.Errorf("login failed: %v", err)
 		utils.InternalServerError(c, err, "Failed to authenticate user")
 		return
 	}
 
-	// Success response
 	utils.Ok(c, response, "Login successful")
 }
 
@@ -97,31 +93,29 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 // Request body: RefreshTokenRequest (JSON)
 // Response: RefreshTokenResponse with new access and refresh tokens
 func (ctrl *AuthController) RefreshToken(c *gin.Context) {
-	var req dto.RefreshTokenRequest
+	var err error
+	requestID := c.GetString("request_id")
+	span := logger.StartWithRequestID(requestID, "AuthController", "RefreshToken")
+	defer span.Finish(err)
 
-	// Bind and validate JSON request
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var req dto.RefreshTokenRequest
+	if err = c.ShouldBindJSON(&req); err != nil {
 		logger.Warnf("invalid refresh token request: %v", err)
 		utils.BadRequest(c, err, "Invalid request data")
 		return
 	}
 
-	// Call service
-	response, err := ctrl.service.RefreshToken(&req)
+	response, err := ctrl.service.RefreshToken(c.Request.Context(), &req)
 	if err != nil {
-		// Handle specific errors
 		if errors.Is(err, services.ErrInvalidRefreshToken) {
 			utils.Unauthorized(c, err, "Invalid or expired refresh token")
 			return
 		}
-
-		// Handle generic errors
 		logger.Errorf("token refresh failed: %v", err)
 		utils.InternalServerError(c, err, "Failed to refresh token")
 		return
 	}
 
-	// Success response
 	utils.Ok(c, response, "Token refreshed successfully")
 }
 
@@ -131,34 +125,29 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 // Request body: ForgotPasswordRequest (JSON)
 // Response: Success message (token sent via email in production)
 func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
-	var req dto.ForgotPasswordRequest
+	var err error
+	requestID := c.GetString("request_id")
+	span := logger.StartWithRequestID(requestID, "AuthController", "ForgotPassword")
+	defer span.Finish(err)
 
-	// Bind and validate JSON request
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var req dto.ForgotPasswordRequest
+	if err = c.ShouldBindJSON(&req); err != nil {
 		logger.Warnf("invalid forgot password request: %v", err)
 		utils.BadRequest(c, err, "Invalid request data")
 		return
 	}
 
-	// Call service
-	resetToken, err := ctrl.service.ForgotPassword(&req)
+	resetToken, err := ctrl.service.ForgotPassword(c.Request.Context(), &req)
 	if err != nil {
-		// Handle specific errors
 		if errors.Is(err, services.ErrUserNotFound) {
-			// Return success even if user not found (security best practice)
-			// Don't reveal if email exists in system
 			utils.Ok(c, nil, "If the email exists, a password reset link has been sent")
 			return
 		}
-
-		// Handle generic errors
 		logger.Errorf("forgot password failed: %v", err)
 		utils.InternalServerError(c, err, "Failed to process request")
 		return
 	}
 
-	// Success response
-	// In production, don't return the token in response; send via email
 	if config.IsProduction() {
 		utils.Ok(c, map[string]string{
 			"message": "Password reset instructions sent to email",
@@ -166,7 +155,6 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	// Non-production: include token for development/testing convenience
 	utils.Ok(c, map[string]string{
 		"message": "Password reset instructions sent to email",
 		"token":   resetToken,
@@ -179,19 +167,20 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 // Request body: ResetPasswordRequest (JSON)
 // Response: Success message
 func (ctrl *AuthController) ResetPassword(c *gin.Context) {
-	var req dto.ResetPasswordRequest
+	var err error
+	requestID := c.GetString("request_id")
+	span := logger.StartWithRequestID(requestID, "AuthController", "ResetPassword")
+	defer span.Finish(err)
 
-	// Bind and validate JSON request
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var req dto.ResetPasswordRequest
+	if err = c.ShouldBindJSON(&req); err != nil {
 		logger.Warnf("invalid reset password request: %v", err)
 		utils.BadRequest(c, err, "Invalid request data")
 		return
 	}
 
-	// Call service
-	err := ctrl.service.ResetPassword(&req)
+	err = ctrl.service.ResetPassword(c.Request.Context(), &req)
 	if err != nil {
-		// Handle specific errors
 		if errors.Is(err, services.ErrInvalidResetToken) {
 			utils.BadRequest(c, err, "Invalid reset token")
 			return
@@ -200,14 +189,11 @@ func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 			utils.BadRequest(c, err, "Reset token has expired")
 			return
 		}
-
-		// Handle generic errors
 		logger.Errorf("password reset failed: %v", err)
 		utils.InternalServerError(c, err, "Failed to reset password")
 		return
 	}
 
-	// Success response
 	utils.Ok(c, nil, "Password reset successfully")
 }
 
@@ -216,6 +202,11 @@ func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 // GET /api/profile (requires JWT)
 // Response: user_id from context in standard response format
 func (ctrl *AuthController) Profile(c *gin.Context) {
+	var err error
+	requestID := c.GetString("request_id")
+	span := logger.StartWithRequestID(requestID, "AuthController", "Profile")
+	defer span.Finish(err)
+
 	userID := c.GetUint("user_id")
 	utils.Ok(c, gin.H{"user_id": userID}, "Profile retrieved successfully")
 }

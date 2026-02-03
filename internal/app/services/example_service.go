@@ -1,7 +1,10 @@
 package services
 
 import (
+	"context"
+
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,6 +17,9 @@ func NewExampleService() *ExampleService {
 }
 
 // GetDataDatatables returns data in DataTables format for server-side processing.
-func (s *ExampleService) GetDataDatatables(c *gin.Context) (interface{}, error) {
+func (s *ExampleService) GetDataDatatables(ctx context.Context, c *gin.Context) (data interface{}, err error) {
+	span := logger.Start(ctx, "ExampleService", "GetDataDatatables")
+	defer span.Finish(err)
+
 	return repositories.GetDataDatatables(c)
 }

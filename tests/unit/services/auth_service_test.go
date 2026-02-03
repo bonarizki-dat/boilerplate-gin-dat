@@ -1,6 +1,7 @@
 package services_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
@@ -191,7 +192,7 @@ func TestRefreshToken(t *testing.T) {
 				RefreshToken: tt.refreshToken,
 			}
 
-			response, err := service.RefreshToken(req)
+			response, err := service.RefreshToken(context.Background(), req)
 
 			if tt.expectError != nil {
 				assert.Error(t, err)
@@ -251,7 +252,7 @@ func TestForgotPassword(t *testing.T) {
 				Email: tt.email,
 			}
 
-			token, err := service.ForgotPassword(req)
+			token, err := service.ForgotPassword(context.Background(), req)
 
 			if tt.expectError != nil {
 				assert.Error(t, err)
@@ -320,7 +321,7 @@ func TestResetPassword(t *testing.T) {
 				NewPassword: tt.newPassword,
 			}
 
-			err := service.ResetPassword(req)
+			err := service.ResetPassword(context.Background(), req)
 
 			if tt.expectError != nil {
 				assert.Error(t, err)
