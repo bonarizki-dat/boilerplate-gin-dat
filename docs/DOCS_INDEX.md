@@ -37,7 +37,7 @@
 |-------|------|-------|----------|
 | **Router Organization** | CODING_STANDARDS.md | 1727-1952 | `routes`, `Register*Routes`, `index.go`, `feature` |
 | **Middleware** | DESIGN_PATTERNS.md | 1086-1173 | `gin.HandlerFunc`, `c.Next()`, `auth`, `rate limit` |
-| **Rate Limiting** | - | - | `RateLimitMiddleware`, `per-IP`, `token bucket` |
+| **Rate Limiting** | CONFIGURATION.md | Optional vars, Example 3 | `RateLimitMiddleware`, `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST`, per-IP, token bucket; config read in middleware |
 
 ### Testing
 | Topic | File | Lines | Keywords |

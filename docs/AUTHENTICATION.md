@@ -443,11 +443,10 @@ New fields added to `users` table:
 
 ### Rate Limiting
 
-All auth endpoints have rate limiting:
-- **Rate:** 100 requests per second
-- **Burst:** 200 requests
-- **Per:** IP address
-- **Response:** 429 Too Many Requests
+All auth endpoints use rate limiting (per IP, token bucket). Limits are read from config inside the middleware:
+- **Env vars:** `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST` (see [CONFIGURATION.md](CONFIGURATION.md))
+- **Defaults:** 100 requests per second, burst 200
+- **Response when exceeded:** 429 Too Many Requests
 
 ---
 

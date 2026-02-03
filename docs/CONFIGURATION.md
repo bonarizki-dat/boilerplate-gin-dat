@@ -155,26 +155,9 @@ func seedTestData() {
 }
 ```
 
-**Example 3: Different Rate Limits Per Environment**
-```go
-// internal/app/routers/index.go
-func RegisterAuthRoutes(router *gin.Engine) {
-    var rateLimit int
+**Example 3: Rate Limits From Environment**
 
-    if config.IsProduction() {
-        rateLimit = 10 // Strict limit in production
-    } else {
-        rateLimit = 1000 // Relaxed for development/testing
-    }
-
-    authRoutes := router.Group("/auth")
-    authRoutes.Use(middlewares.RateLimitMiddlewareWithConfig(rateLimit, rateLimit*2))
-    {
-        authRoutes.POST("/register", authController.Register)
-        authRoutes.POST("/login", authController.Login)
-    }
-}
-```
+Rate limit is read inside `RateLimitMiddleware()` from `RATE_LIMIT_RPS` and `RATE_LIMIT_BURST` (see `internal/app/middlewares/rate_limit.go`). If unset or ≤0, defaults (100 rps, 200 burst) are used. Set these in each environment's `.env` (e.g. lower in production, higher in development).
 
 **Example 4: Enable Profiling in Non-Production**
 ```go
@@ -244,6 +227,8 @@ The following environment variables **MUST** be set. The application will not st
 | `DEBUG` | Debug mode | Auto (true in dev) | Set to `True` only in development |
 | `ALLOWED_HOSTS` | Allowed hosts | `0.0.0.0` | Comma-separated list |
 | `SERVER_TIMEZONE` | Server timezone | `Asia/Dhaka` | Must be valid IANA timezone (e.g. UTC, Asia/Jakarta). Default applied in main.go when unset. |
+| `RATE_LIMIT_RPS` | Auth rate limit (requests per second per IP) | `100` | Applied to `/auth` routes only. Set to 0 or omit to use default. |
+| `RATE_LIMIT_BURST` | Auth rate limit burst size | `200` | Max tokens in bucket. Set to 0 or omit to use default. |
 | `MASTER_DB_LOG_MODE` | Enable DB query logging | `True` | Set to `False` in production |
 | `MASTER_SSL_MODE` | Database SSL mode | `disable` | Use `require` in production |
 
@@ -594,13 +579,9 @@ func Migrate() {
 **3. Different Rate Limits Per Environment**
 
 ```go
-var limit int
-if config.IsProduction() {
-    limit = 10 // Strict in production
-} else {
-    limit = 1000 // Relaxed in dev/staging
-}
-authRoutes.Use(middlewares.RateLimitMiddlewareWithConfig(limit, limit*2))
+// Rate limit is read from RATE_LIMIT_RPS / RATE_LIMIT_BURST in .env by RateLimitMiddleware().
+// Set different values per environment (e.g. RATE_LIMIT_RPS=10 in production, 100 in development).
+authRoutes.Use(middlewares.RateLimitMiddleware())
 ```
 
 **4. Development-Only Debug Endpoints**

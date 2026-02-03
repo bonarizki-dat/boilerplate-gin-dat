@@ -7,6 +7,7 @@ import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"golang.org/x/time/rate"
 )
 
@@ -62,12 +63,18 @@ var (
 	once          sync.Once
 )
 
-// initRateLimiter initializes the global rate limiter
+// initRateLimiter initializes the global rate limiter from RATE_LIMIT_RPS and RATE_LIMIT_BURST env.
 func initRateLimiter() {
 	once.Do(func() {
-		// Default: 100 requests per second with burst of 200
-		// Adjust these values based on your needs
-		globalLimiter = NewIPRateLimiter(100, 200)
+		rps := viper.GetInt("RATE_LIMIT_RPS")
+		if rps <= 0 {
+			rps = 100
+		}
+		burst := viper.GetInt("RATE_LIMIT_BURST")
+		if burst <= 0 {
+			burst = 200
+		}
+		globalLimiter = NewIPRateLimiter(rate.Limit(rps), burst)
 
 		// Cleanup old limiters every 5 minutes
 		go func() {
@@ -81,12 +88,10 @@ func initRateLimiter() {
 	})
 }
 
-// RateLimitMiddleware creates a rate limiting middleware
+// RateLimitMiddleware creates a rate limiting middleware.
 //
-// Limits requests per IP address to prevent abuse and DDoS attacks.
-// Uses token bucket algorithm for smooth rate limiting.
-//
-// Default limits: 100 requests/second with burst of 200
+// Limits requests per IP. Reads RATE_LIMIT_RPS and RATE_LIMIT_BURST from config;
+// if unset or <= 0, uses defaults 100 req/s and burst 200.
 func RateLimitMiddleware() gin.HandlerFunc {
 	initRateLimiter()
 

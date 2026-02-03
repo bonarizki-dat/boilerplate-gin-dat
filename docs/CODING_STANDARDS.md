@@ -1342,29 +1342,15 @@ func DeleteUser(c *gin.Context) {
 
 ### 9.5 Rate Limiting
 
-**MUST implement rate limiting for public endpoints:**
+**MUST implement rate limiting for public endpoints (e.g. auth):**
 
 ```go
 ✅ CORRECT:
-// In router
-router.Use(middlewares.RateLimitMiddleware())
-
-// In middleware
-func RateLimitMiddleware() gin.HandlerFunc {
-    limiter := rate.NewLimiter(rate.Limit(100), 200)  // 100 req/sec, burst 200
-
-    return func(c *gin.Context) {
-        if !limiter.Allow() {
-            c.JSON(http.StatusTooManyRequests, gin.H{
-                "error": "Rate limit exceeded",
-            })
-            c.Abort()
-            return
-        }
-        c.Next()
-    }
-}
+// In router — middleware reads RATE_LIMIT_RPS and RATE_LIMIT_BURST from config
+authRoutes.Use(middlewares.RateLimitMiddleware())
 ```
+
+Limits are read inside `RateLimitMiddleware()` from env vars `RATE_LIMIT_RPS` and `RATE_LIMIT_BURST` (defaults 100 rps, 200 burst if unset). See [CONFIGURATION.md](CONFIGURATION.md) — Environment Variables (Optional) and Example 3.
 
 ---
 

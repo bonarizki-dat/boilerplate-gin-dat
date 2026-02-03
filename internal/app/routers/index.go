@@ -30,7 +30,7 @@ func RegisterRoutes(route *gin.Engine) {
 	route.GET("/datatables", exampleController.GetDataDatatables)
 
 	// Auth routes (public - no authentication required)
-	// Apply rate limiting to prevent brute force attacks
+	// Rate limit read from RATE_LIMIT_RPS / RATE_LIMIT_BURST inside middleware
 	authRoutes := route.Group("/auth")
 	authRoutes.Use(middlewares.RateLimitMiddleware())
 	{
