@@ -66,6 +66,8 @@
 | **Health Checks** | OBSERVABILITY.md | 22-130 | `/health`, `GET /health`, `database check`, `Kubernetes`, `Docker` |
 | **Metrics** | OBSERVABILITY.md | 132-243 | `/metrics`, `request counters`, `uptime`, `error rate` |
 | **Request Tracing** | OBSERVABILITY.md | 245-336 | `request ID`, `UUID`, `X-Request-ID`, `tracing`, `grep logs` |
+| **Logger API (pkg/logger)** | OBSERVABILITY.md | Logger API section | `LogStart`, `LogFinish`, `FromContext`, `WithRequestID`, `spanName`, `request_id` |
+| **Logging Standards** | CODING_STANDARDS.md | §8 | `logger`, `Infof`, `Errorf`, `LogStart`, `LogFinish`, `request-scoped` |
 | **Performance Impact** | OBSERVABILITY.md | 387-435 | `overhead`, `benchmark`, `0.12%`, `negligible` |
 
 ### Configuration

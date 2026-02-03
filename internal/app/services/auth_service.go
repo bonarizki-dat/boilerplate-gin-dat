@@ -42,16 +42,17 @@ func NewAuthService() *AuthService {
 // Returns ErrEmailAlreadyExists if email is already registered.
 // Password is hashed using bcrypt before storage.
 func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (resp *dto.AuthResponse, err error) {
-	span := logger.Start(ctx, "AuthService", "Register")
-	defer span.Finish(err)
+	ctx, start := logger.LogStart(ctx, "AuthService.Register")
 
 	existingUser, err := repositories.GetUserByEmail(req.Email)
 	if err != nil {
+		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to check email: %w", err)
 	}
 
 	if existingUser != nil {
 		logger.Warnf("registration attempt with existing email: %s", req.Email)
+		logger.LogFinish(ctx, "AuthService.Register", ErrEmailAlreadyExists, start)
 		return nil, ErrEmailAlreadyExists
 	}
 
@@ -59,6 +60,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	hashedPassword, err := s.hashPassword(req.Password)
 	if err != nil {
 		logger.Errorf("failed to hash password: %v", err)
+		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to process password: %w", err)
 	}
 
@@ -72,6 +74,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	// Save to database
 	if err = repositories.CreateUser(user); err != nil {
 		logger.Errorf("failed to create user: %v", err)
+		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
@@ -81,6 +84,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	accessToken, err := s.generateToken(user)
 	if err != nil {
 		logger.Errorf("failed to generate access token: %v", err)
+		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
@@ -88,6 +92,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	refreshToken, err := s.generateRefreshToken()
 	if err != nil {
 		logger.Errorf("failed to generate refresh token: %v", err)
+		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
@@ -95,6 +100,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	user.RefreshToken = refreshToken
 	if err := repositories.UpdateUser(user); err != nil {
 		logger.Errorf("failed to save refresh token: %v", err)
+		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to save refresh token: %w", err)
 	}
 
@@ -110,6 +116,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 		TokenType:    "Bearer",
 	}
 
+	logger.LogFinish(ctx, "AuthService.Register", nil, start)
 	return response, nil
 }
 
@@ -117,23 +124,25 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 //
 // Returns ErrInvalidCredentials if email or password is incorrect.
 func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *dto.AuthResponse, err error) {
-	span := logger.Start(ctx, "AuthService", "Login")
-	defer span.Finish(err)
+	ctx, start := logger.LogStart(ctx, "AuthService.Login")
 
 	user, err := repositories.GetUserByEmail(req.Email)
 	if err != nil {
 		logger.Errorf("failed to get user: %v", err)
+		logger.LogFinish(ctx, "AuthService.Login", err, start)
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
 	if user == nil {
 		logger.Warnf("login attempt with non-existent email: %s", req.Email)
+		logger.LogFinish(ctx, "AuthService.Login", ErrInvalidCredentials, start)
 		return nil, ErrInvalidCredentials
 	}
 
 	// Verify password
 	if err = s.verifyPassword(user.Password, req.Password); err != nil {
 		logger.Warnf("login attempt with invalid password: %s", req.Email)
+		logger.LogFinish(ctx, "AuthService.Login", ErrInvalidCredentials, start)
 		return nil, ErrInvalidCredentials
 	}
 
@@ -143,6 +152,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 	accessToken, err := s.generateToken(user)
 	if err != nil {
 		logger.Errorf("failed to generate access token: %v", err)
+		logger.LogFinish(ctx, "AuthService.Login", err, start)
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
@@ -150,6 +160,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 	refreshToken, err := s.generateRefreshToken()
 	if err != nil {
 		logger.Errorf("failed to generate refresh token: %v", err)
+		logger.LogFinish(ctx, "AuthService.Login", err, start)
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
@@ -157,6 +168,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 	user.RefreshToken = refreshToken
 	if err := repositories.UpdateUser(user); err != nil {
 		logger.Errorf("failed to save refresh token: %v", err)
+		logger.LogFinish(ctx, "AuthService.Login", err, start)
 		return nil, fmt.Errorf("failed to save refresh token: %w", err)
 	}
 
@@ -172,6 +184,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 		TokenType:    "Bearer",
 	}
 
+	logger.LogFinish(ctx, "AuthService.Login", nil, start)
 	return response, nil
 }
 
@@ -274,17 +287,18 @@ func (s *AuthService) generateRefreshToken() (string, error) {
 //
 // Returns ErrInvalidRefreshToken if the refresh token is invalid or not found.
 func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (resp *dto.RefreshTokenResponse, err error) {
-	span := logger.Start(ctx, "AuthService", "RefreshToken")
-	defer span.Finish(err)
+	ctx, start := logger.LogStart(ctx, "AuthService.RefreshToken")
 
 	user, err := repositories.GetUserByRefreshToken(req.RefreshToken)
 	if err != nil {
 		logger.Errorf("failed to get user by refresh token: %v", err)
+		logger.LogFinish(ctx, "AuthService.RefreshToken", err, start)
 		return nil, fmt.Errorf("failed to validate refresh token: %w", err)
 	}
 
 	if user == nil {
 		logger.Warnf("refresh token attempt with invalid token")
+		logger.LogFinish(ctx, "AuthService.RefreshToken", ErrInvalidRefreshToken, start)
 		return nil, ErrInvalidRefreshToken
 	}
 
@@ -292,6 +306,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	accessToken, err := s.generateToken(user)
 	if err != nil {
 		logger.Errorf("failed to generate new access token: %v", err)
+		logger.LogFinish(ctx, "AuthService.RefreshToken", err, start)
 		return nil, fmt.Errorf("failed to generate new access token: %w", err)
 	}
 
@@ -299,6 +314,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	newRefreshToken, err := s.generateRefreshToken()
 	if err != nil {
 		logger.Errorf("failed to generate new refresh token: %v", err)
+		logger.LogFinish(ctx, "AuthService.RefreshToken", err, start)
 		return nil, fmt.Errorf("failed to generate new refresh token: %w", err)
 	}
 
@@ -306,6 +322,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	user.RefreshToken = newRefreshToken
 	if err := repositories.UpdateUser(user); err != nil {
 		logger.Errorf("failed to update refresh token: %v", err)
+		logger.LogFinish(ctx, "AuthService.RefreshToken", err, start)
 		return nil, fmt.Errorf("failed to update refresh token: %w", err)
 	}
 
@@ -318,6 +335,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 		TokenType:    "Bearer",
 	}
 
+	logger.LogFinish(ctx, "AuthService.RefreshToken", nil, start)
 	return response, nil
 }
 
@@ -326,17 +344,18 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 // In production, this token should be sent via email instead of returned in response.
 // Returns ErrUserNotFound if email doesn't exist.
 func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswordRequest) (token string, err error) {
-	span := logger.Start(ctx, "AuthService", "ForgotPassword")
-	defer span.Finish(err)
+	ctx, start := logger.LogStart(ctx, "AuthService.ForgotPassword")
 
 	user, err := repositories.GetUserByEmail(req.Email)
 	if err != nil {
 		logger.Errorf("failed to get user by email: %v", err)
+		logger.LogFinish(ctx, "AuthService.ForgotPassword", err, start)
 		return "", fmt.Errorf("failed to process request: %w", err)
 	}
 
 	if user == nil {
 		logger.Warnf("password reset attempt for non-existent email: %s", req.Email)
+		logger.LogFinish(ctx, "AuthService.ForgotPassword", ErrUserNotFound, start)
 		return "", ErrUserNotFound
 	}
 
@@ -344,6 +363,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 	resetToken, err := s.generatePasswordResetToken()
 	if err != nil {
 		logger.Errorf("failed to generate reset token: %v", err)
+		logger.LogFinish(ctx, "AuthService.ForgotPassword", err, start)
 		return "", fmt.Errorf("failed to generate reset token: %w", err)
 	}
 
@@ -355,6 +375,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 	// Save to database
 	if err := repositories.UpdateUser(user); err != nil {
 		logger.Errorf("failed to save reset token: %v", err)
+		logger.LogFinish(ctx, "AuthService.ForgotPassword", err, start)
 		return "", fmt.Errorf("failed to save reset token: %w", err)
 	}
 
@@ -362,6 +383,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 
 	// TODO: In production, send this token via email instead of returning it
 	// For now, we return it for testing purposes
+	logger.LogFinish(ctx, "AuthService.ForgotPassword", nil, start)
 	return resetToken, nil
 }
 
@@ -370,23 +392,25 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 // Returns ErrInvalidResetToken if token is invalid.
 // Returns ErrResetTokenExpired if token has expired.
 func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordRequest) (err error) {
-	span := logger.Start(ctx, "AuthService", "ResetPassword")
-	defer span.Finish(err)
+	ctx, start := logger.LogStart(ctx, "AuthService.ResetPassword")
 
 	user, err := repositories.GetUserByPasswordResetToken(req.Token)
 	if err != nil {
 		logger.Errorf("failed to get user by reset token: %v", err)
+		logger.LogFinish(ctx, "AuthService.ResetPassword", err, start)
 		return fmt.Errorf("failed to validate reset token: %w", err)
 	}
 
 	if user == nil {
 		logger.Warnf("password reset attempt with invalid token")
+		logger.LogFinish(ctx, "AuthService.ResetPassword", ErrInvalidResetToken, start)
 		return ErrInvalidResetToken
 	}
 
 	// Check if token has expired
 	if user.PasswordResetExpiry == nil || time.Now().After(*user.PasswordResetExpiry) {
 		logger.Warnf("password reset attempt with expired token for user: %s", user.Email)
+		logger.LogFinish(ctx, "AuthService.ResetPassword", ErrResetTokenExpired, start)
 		return ErrResetTokenExpired
 	}
 
@@ -394,6 +418,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordR
 	hashedPassword, err := s.hashPassword(req.NewPassword)
 	if err != nil {
 		logger.Errorf("failed to hash new password: %v", err)
+		logger.LogFinish(ctx, "AuthService.ResetPassword", err, start)
 		return fmt.Errorf("failed to process password: %w", err)
 	}
 
@@ -405,11 +430,13 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordR
 	// Save to database
 	if err := repositories.UpdateUser(user); err != nil {
 		logger.Errorf("failed to update password: %v", err)
+		logger.LogFinish(ctx, "AuthService.ResetPassword", err, start)
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 
 	logger.Infof("password reset successful for user: %s", user.Email)
 
+	logger.LogFinish(ctx, "AuthService.ResetPassword", nil, start)
 	return nil
 }
 

@@ -73,12 +73,12 @@ func RequestLogMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		dur := time.Since(start).Milliseconds()
+		durMs := time.Since(start).Seconds() * 1000
 		maskedRespBody := utils.MaskSensitiveJSON(rec.body.String())
 		if maskedRespBody == "" {
 			maskedRespBody = "{}"
 		}
-		reqLog.Infof("RESPONSE SENT status=%d duration=%dms size=%d bytes body=%s",
-			rec.status, dur, rec.size, maskedRespBody)
+		reqLog.Infof("RESPONSE SENT status=%d duration=%.2fms size=%d bytes body=%s",
+			rec.status, durMs, rec.size, maskedRespBody)
 	}
 }

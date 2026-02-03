@@ -1139,9 +1139,11 @@ tests/
 
 ## 8. LOGGING STANDARDS
 
+**MUST use the structured logger from `pkg/logger`.** For request-scoped tracing (START/FINISH with request_id and duration), use **LogStart** and **LogFinish** in every HTTP handler and service method; see [OBSERVABILITY.md](OBSERVABILITY.md) — section "Logger API (pkg/logger)" and "Using Request ID in Code" for full usage and examples.
+
 ### 8.1 Logger Usage
 
-**MUST use structured logger from `/pkg/logger`:**
+**MUST use structured logger from `pkg/logger`:**
 
 ```go
 ✅ CORRECT:
@@ -1168,6 +1170,8 @@ fmt.Println("Error:", err)  // Don't use fmt for logging
 
 panic("Something went wrong")  // Don't panic for errors
 ```
+
+**Request-scoped tracing (handlers and services):** At the start of each handler call `ctx, start := logger.LogStart(c.Request.Context(), "ControllerName.Method")` and pass `ctx` to services. In each service method call `ctx, start := logger.LogStart(ctx, "ServiceName.Method")`. Before **every** return (success or error), call `logger.LogFinish(ctx, "ControllerName.Method", err, start)` or `logger.LogFinish(ctx, "ServiceName.Method", err, start)`. This produces START/FINISH lines with request_id and duration. For details and examples see **OBSERVABILITY.md**.
 
 ### 8.2 Log Levels
 

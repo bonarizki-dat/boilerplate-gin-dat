@@ -134,54 +134,20 @@ func FromContext(ctx context.Context) *logrus.Entry {
 	return logger.WithFields(logrus.Fields{})
 }
 
-// Span holds start time and component/method for START/FINISH logging.
-type Span struct {
-	requestID string
-	component string
-	method    string
-	start     time.Time
-	entry     *logrus.Entry
+// LogStart logs START and returns ctx and start time. Use at handler/method entry; call LogFinish before every return.
+// In controllers pass c.Request.Context(); in services pass the ctx received from the controller.
+func LogStart(ctx context.Context, spanName string) (context.Context, time.Time) {
+	start := time.Now()
+	FromContext(ctx).Infof("START %s", spanName)
+	return ctx, start
 }
 
-// StartWithRequestID begins a span and logs START. Use for controllers (have request_id from gin).
-func StartWithRequestID(requestID, component, method string) *Span {
-	s := &Span{
-		requestID: requestID,
-		component: component,
-		method:    method,
-		start:     time.Now(),
-		entry:     WithRequestID(requestID),
-	}
-	s.entry.Infof("START %s.%s", component, method)
-	return s
-}
-
-// Start begins a span using request_id from ctx and logs START. Use for services (receive ctx).
-func Start(ctx context.Context, component, method string) *Span {
-	entry := FromContext(ctx)
-	requestID := ""
-	if ctx != nil {
-		if rid, ok := ctx.Value(RequestIDContextKey).(string); ok {
-			requestID = rid
-		}
-	}
-	s := &Span{
-		requestID: requestID,
-		component: component,
-		method:    method,
-		start:     time.Now(),
-		entry:     entry,
-	}
-	s.entry.Infof("START %s.%s", component, method)
-	return s
-}
-
-// Finish logs FINISH with SUCCESS or FAIL and duration. Call with err from handler return.
-func (s *Span) Finish(err error) {
-	dur := time.Since(s.start).Milliseconds()
+// LogFinish logs FINISH with SUCCESS or FAIL and duration. Call before every return in handlers and service methods.
+func LogFinish(ctx context.Context, spanName string, err error, start time.Time) {
+	durMs := time.Since(start).Seconds() * 1000
 	status := "SUCCESS"
 	if err != nil {
 		status = "FAIL"
 	}
-	s.entry.Infof("FINISH %s.%s (%s) duration=%dms", s.component, s.method, status, dur)
+	FromContext(ctx).Infof("FINISH %s (%s) duration=%.2fms", spanName, status, durMs)
 }

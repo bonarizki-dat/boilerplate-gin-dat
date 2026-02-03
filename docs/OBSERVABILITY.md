@@ -10,10 +10,11 @@
 2. [Health Checks](#health-checks)
 3. [Metrics](#metrics)
 4. [Request Tracing](#request-tracing)
-5. [Usage Examples](#usage-examples)
-6. [Performance Impact](#performance-impact)
-7. [Production Setup](#production-setup)
-8. [Troubleshooting](#troubleshooting)
+5. [Logger API (pkg/logger)](#logger-api-pkglogger)
+6. [Usage Examples](#usage-examples)
+7. [Performance Impact](#performance-impact)
+8. [Production Setup](#production-setup)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -418,26 +419,45 @@ Every request produces a consistent log sequence so you can trace flow and durat
 - **FINISH** — Logged at exit with success/fail and duration (e.g. `FINISH HealthService.CheckHealth (SUCCESS) duration=24ms`).
 - **RESPONSE SENT** — Logged by middleware after response (status, duration, size, body; sensitive fields masked).
 
-START/FINISH are always on (no DEBUG or env flag). Services receive `context.Context` so request_id flows from HTTP to service layer.
+START/FINISH are always on (no DEBUG or env flag). They are produced by explicit **LogStart** and **LogFinish** calls (call LogFinish before every return), not by defer. Services receive `context.Context` so request_id flows from HTTP to service layer.
 
 ### Sensitive Data Masking
 
 Request and response bodies and query strings are logged in full **after masking** sensitive fields. Field names (case-insensitive) such as `password`, `token`, `secret`, `authorization`, `refresh_token`, `access_token`, `api_key`, `cookie` are replaced with `***MASKED***` in the logged value. This keeps logs useful for debugging while avoiding exposure of secrets.
+
+### Logger API (pkg/logger)
+
+Use the logger from `pkg/logger` for all application logs. Request ID is injected into `c.Request.Context()` by middleware; pass that context through so every log line can include the same `request_id`.
+
+| API | Use case |
+|-----|----------|
+| **LogStart(ctx, spanName)** | Start a traced span. Returns `(context.Context, time.Time)`. Controllers: `logger.LogStart(c.Request.Context(), "ControllerName.Method")`. Services: `logger.LogStart(ctx, "ServiceName.Method")`. |
+| **LogFinish(ctx, spanName, err, start)** | End the span and log FINISH with SUCCESS/FAIL and duration (float ms). **Call before every return** in handlers and service methods. |
+| **FromContext(ctx)** | Get a log entry that includes `request_id` from context. Use for ad-hoc log lines inside a request: `logger.FromContext(ctx).Infof("message")`. |
+| **WithRequestID(requestID)** | Get a log entry with a specific request_id (e.g. when you only have the ID string). Use when outside the normal request flow. |
+| **Infof / Errorf / Warnf / Debugf** | Standard level logging. Prefer `FromContext(ctx).Infof(...)` inside handlers/services so request_id is included. |
+
+**Rules:**
+
+- Every HTTP handler that does meaningful work should call `LogStart` at entry and `LogFinish` before every return (all error and success paths).
+- Every service method called from those handlers should do the same: `LogStart(ctx, "ServiceName.Method")` and `LogFinish(ctx, "ServiceName.Method", err, start)` before each return.
+- Use the same `ctx` returned from `LogStart` when calling services so request_id propagates.
+- Do not log raw request/response bodies containing passwords or tokens; middleware already logs masked bodies. For ad-hoc logs use `utils.MaskSensitiveJSON` if needed (see `pkg/utils/mask`).
 
 ### Using Request ID in Code
 
 **In Controllers:**
 ```go
 func (ctrl *UserController) GetUser(c *gin.Context) {
-    requestID := c.GetString("request_id")
-    span := logger.StartWithRequestID(requestID, "UserController", "GetUser")
-    defer span.Finish(err)
+    ctx, start := logger.LogStart(c.Request.Context(), "UserController.GetUser")
 
-    user, err := ctrl.service.GetUser(c.Request.Context(), userID)
+    user, err := ctrl.service.GetUser(ctx, userID)
     if err != nil {
+        logger.LogFinish(ctx, "UserController.GetUser", err, start)
         utils.InternalServerError(c, err, "Failed to get user")
         return
     }
+    logger.LogFinish(ctx, "UserController.GetUser", nil, start)
     utils.Ok(c, user, "User retrieved successfully")
 }
 ```
@@ -445,16 +465,16 @@ func (ctrl *UserController) GetUser(c *gin.Context) {
 **In Services (use context.Context):**
 ```go
 func (s *UserService) GetUser(ctx context.Context, userID string) (*models.User, error) {
-    span := logger.Start(ctx, "UserService", "GetUser")
-    defer span.Finish(err)
+    ctx, start := logger.LogStart(ctx, "UserService.GetUser")
 
     logger.FromContext(ctx).Infof("fetching user %s", userID)
     // Business logic...
+    logger.LogFinish(ctx, "UserService.GetUser", nil, start)
     return user, nil
 }
 ```
 
-Request ID is stored in `c.Request.Context()` by middleware. Controllers pass `c.Request.Context()` into services; services use `logger.FromContext(ctx)` or `logger.Start(ctx, component, method)` so every log line includes the same request_id.
+Request ID is stored in `c.Request.Context()` by middleware. Controllers call `logger.LogStart(c.Request.Context(), spanName)` and pass the returned `ctx` into services; services call `logger.LogStart(ctx, spanName)` and `logger.LogFinish(ctx, spanName, err, start)` before every return. Use `logger.FromContext(ctx)` for ad-hoc log lines so every log line includes the same request_id.
 
 ### Searching Logs by Request ID
 
@@ -849,10 +869,12 @@ logger.WithRequestID(requestID).Infof("User created")
 logger.FromContext(ctx).Infof("User created")
 ```
 
-2. **Use START/FINISH spans for consistent tracing:**
+2. **Use LogStart/LogFinish for consistent tracing:**
 ```go
-span := logger.StartWithRequestID(requestID, "UserController", "Create")
-defer span.Finish(err)
+ctx, start := logger.LogStart(c.Request.Context(), "UserController.Create")
+// ... handler logic ...
+logger.LogFinish(ctx, "UserController.Create", err, start)
+// then return
 ```
 
 ### High Memory Usage

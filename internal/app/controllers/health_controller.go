@@ -24,13 +24,12 @@ func NewHealthController(service *services.HealthService) *HealthController {
 // GET /health
 // Returns health status of the application and its dependencies.
 func (ctrl *HealthController) Health(c *gin.Context) {
-	requestID := c.GetString("request_id")
-	span := logger.StartWithRequestID(requestID, "HealthController", "Health")
-	defer span.Finish(nil)
+	ctx, start := logger.LogStart(c.Request.Context(), "HealthController.Health")
 
-	response := ctrl.service.CheckHealth(c.Request.Context())
+	response := ctrl.service.CheckHealth(ctx)
 
 	if response.Status == "unhealthy" {
+		logger.LogFinish(ctx, "HealthController.Health", nil, start)
 		c.JSON(503, gin.H{
 			"success": false,
 			"message": "Service is unhealthy",
@@ -40,6 +39,7 @@ func (ctrl *HealthController) Health(c *gin.Context) {
 		return
 	}
 
+	logger.LogFinish(ctx, "HealthController.Health", nil, start)
 	utils.Ok(c, response, "Service is healthy")
 }
 
@@ -48,10 +48,9 @@ func (ctrl *HealthController) Health(c *gin.Context) {
 // GET /metrics
 // Returns basic request counters and uptime statistics.
 func (ctrl *HealthController) Metrics(c *gin.Context) {
-	requestID := c.GetString("request_id")
-	span := logger.StartWithRequestID(requestID, "HealthController", "Metrics")
-	defer span.Finish(nil)
+	ctx, start := logger.LogStart(c.Request.Context(), "HealthController.Metrics")
 
-	response := ctrl.service.GetMetrics(c.Request.Context())
+	response := ctrl.service.GetMetrics(ctx)
+	logger.LogFinish(ctx, "HealthController.Metrics", nil, start)
 	utils.Ok(c, response, "Metrics retrieved successfully")
 }

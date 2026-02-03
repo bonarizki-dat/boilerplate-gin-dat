@@ -18,8 +18,9 @@ func NewExampleService() *ExampleService {
 
 // GetDataDatatables returns data in DataTables format for server-side processing.
 func (s *ExampleService) GetDataDatatables(ctx context.Context, c *gin.Context) (data interface{}, err error) {
-	span := logger.Start(ctx, "ExampleService", "GetDataDatatables")
-	defer span.Finish(err)
+	ctx, start := logger.LogStart(ctx, "ExampleService.GetDataDatatables")
 
-	return repositories.GetDataDatatables(c)
+	data, err = repositories.GetDataDatatables(c)
+	logger.LogFinish(ctx, "ExampleService.GetDataDatatables", err, start)
+	return data, err
 }

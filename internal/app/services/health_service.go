@@ -25,8 +25,7 @@ func NewHealthService() *HealthService {
 // Checks database connectivity and returns overall health status.
 // Returns "healthy" only if all checks pass.
 func (s *HealthService) CheckHealth(ctx context.Context) *dto.HealthResponse {
-	span := logger.Start(ctx, "HealthService", "CheckHealth")
-	defer span.Finish(nil)
+	ctx, start := logger.LogStart(ctx, "HealthService.CheckHealth")
 
 	checks := make(map[string]string)
 
@@ -38,6 +37,7 @@ func (s *HealthService) CheckHealth(ctx context.Context) *dto.HealthResponse {
 		overallStatus = "unhealthy"
 	}
 
+	logger.LogFinish(ctx, "HealthService.CheckHealth", nil, start)
 	return &dto.HealthResponse{
 		Status:    overallStatus,
 		Timestamp: time.Now(),
@@ -50,9 +50,9 @@ func (s *HealthService) CheckHealth(ctx context.Context) *dto.HealthResponse {
 //
 // Returns request counters and uptime statistics.
 func (s *HealthService) GetMetrics(ctx context.Context) *dto.MetricsResponse {
-	span := logger.Start(ctx, "HealthService", "GetMetrics")
-	defer span.Finish(nil)
+	ctx, start := logger.LogStart(ctx, "HealthService.GetMetrics")
 
+	logger.LogFinish(ctx, "HealthService.GetMetrics", nil, start)
 	return &dto.MetricsResponse{
 		TotalRequests:   metrics.GetTotalRequests(),
 		SuccessRequests: metrics.GetSuccessRequests(),
