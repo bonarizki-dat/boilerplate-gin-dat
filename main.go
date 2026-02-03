@@ -15,9 +15,12 @@ import (
 
 func main() {
 
-	//set timezone
+	// Set timezone (must be valid IANA name, e.g. UTC, Asia/Jakarta)
 	viper.SetDefault("SERVER_TIMEZONE", "Asia/Dhaka")
-	loc, _ := time.LoadLocation(viper.GetString("SERVER_TIMEZONE"))
+	loc, err := time.LoadLocation(viper.GetString("SERVER_TIMEZONE"))
+	if err != nil {
+		logger.Fatalf("invalid SERVER_TIMEZONE %q: %v", viper.GetString("SERVER_TIMEZONE"), err)
+	}
 	time.Local = loc
 
 	if err := config.SetupConfig(); err != nil {
@@ -37,6 +40,7 @@ func main() {
 	migrations.Migrate()
 
 	router := routers.SetupRoute()
-	logger.Fatalf("%v", router.Run(config.ServerConfig()))
-
+	if err := router.Run(config.ServerConfig()); err != nil {
+		logger.Fatalf("server run error: %v", err)
+	}
 }

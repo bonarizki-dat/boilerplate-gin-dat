@@ -1783,6 +1783,8 @@ All utility functions return standardized JSON format:
 }
 ```
 
+**Exception — external protocols:** Endpoints that follow an external protocol (e.g. DataTables server-side API) may not use `utils.Ok`/SuccessResponse. The response format must follow the library or client contract. Example: `GET /datatables` returns DataTables-specific JSON, not the standard `{ success, message, data, errors }` shape.
+
 #### Validation Errors
 
 Validation errors are automatically formatted:

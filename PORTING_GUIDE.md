@@ -82,6 +82,37 @@ git commit -m "docs: add comprehensive project documentation"
 
 ---
 
+## 🔧 Using this repo as a template (changing the Go module path)
+
+When you **fork or clone this boilerplate** to start a new project under your own org/repo, you must change the Go module path so imports and `go build` use your module name. Do this **once** when creating the new project.
+
+### Steps
+
+1. **Clone or fork the repo** into your project directory.
+
+2. **Update the module path in go.mod:**
+   ```bash
+   go mod edit -module=github.com/your-org/your-repo
+   ```
+   Replace `github.com/your-org/your-repo` with your actual module path.
+
+3. **Replace the old import path** across the codebase:
+   - Old path: `github.com/bonarizki-dat/boilerplate-gin-dat`
+   - New path: your module path from step 2  
+   Use your editor’s find-replace (or a script) over all `.go` files (and any config/docs that reference the path).
+
+4. **Tidy and build:**
+   ```bash
+   go mod tidy
+   go build ./...
+   ```
+
+5. **Commit** the updated `go.mod`, `go.sum`, and all modified files.
+
+After this, the project builds and runs under your module path. You only need to do this when creating a new project from this boilerplate.
+
+---
+
 ## 📖 Detailed Usage
 
 ### Scenario 1: New Project from Scratch

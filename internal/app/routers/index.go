@@ -18,14 +18,16 @@ func RegisterRoutes(route *gin.Engine) {
 	// Health check and metrics routes
 	RegisterHealthRoutes(route)
 
-	// Public routes
-	route.GET("/datatables", controllers.GetDataDatatables)
-
 	// Initialize services
 	authService := services.NewAuthService()
+	exampleService := services.NewExampleService()
 
 	// Initialize controllers
 	authController := controllers.NewAuthController(authService)
+	exampleController := controllers.NewExampleController(exampleService)
+
+	// Public routes
+	route.GET("/datatables", exampleController.GetDataDatatables)
 
 	// Auth routes (public - no authentication required)
 	// Apply rate limiting to prevent brute force attacks
@@ -44,16 +46,7 @@ func RegisterRoutes(route *gin.Engine) {
 	protectedRoutes.Use(middlewares.AuthMiddleware(authService))
 	{
 		// Example protected endpoint - get current user profile
-		protectedRoutes.GET("/profile", func(ctx *gin.Context) {
-			userID := ctx.GetUint("user_id")
-			ctx.JSON(http.StatusOK, gin.H{
-				"status":  http.StatusOK,
-				"message": "Profile retrieved successfully",
-				"data": gin.H{
-					"user_id": userID,
-				},
-			})
-		})
+		protectedRoutes.GET("/profile", authController.Profile)
 
 		// Add more protected routes here
 		// protectedRoutes.GET("/users", controllers.GetUsers)

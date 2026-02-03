@@ -10,19 +10,31 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetData(ctx *gin.Context) {
-	var example []*models.Example
-	repositories.Get(&example)
-	utils.Ok(ctx, &example, "Data retrieved successfully")
+// ExampleController handles example/datatables-related HTTP requests.
+type ExampleController struct {
+	service *services.ExampleService
 }
 
-func GetDataDatatables(ctx *gin.Context) {
-	data, err := services.GetDataDatatables(ctx)
+// NewExampleController creates a new ExampleController instance.
+func NewExampleController(service *services.ExampleService) *ExampleController {
+	return &ExampleController{
+		service: service,
+	}
+}
 
+// GetData handles GET for raw example data (standard JSON response).
+func (ctrl *ExampleController) GetData(c *gin.Context) {
+	var example []*models.Example
+	repositories.Get(&example)
+	utils.Ok(c, &example, "Data retrieved successfully")
+}
+
+// GetDataDatatables handles GET for DataTables server-side format.
+func (ctrl *ExampleController) GetDataDatatables(c *gin.Context) {
+	data, err := ctrl.service.GetDataDatatables(c)
 	if err != nil {
-		utils.InternalServerError(ctx, err, "Failed to retrieve data")
+		utils.InternalServerError(c, err, "Failed to retrieve data")
 		return
 	}
-
-	datatables.JSON(ctx, data.(dto.Datatables))
+	datatables.JSON(c, data.(dto.Datatables))
 }

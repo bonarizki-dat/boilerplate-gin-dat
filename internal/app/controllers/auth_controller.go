@@ -210,3 +210,12 @@ func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 	// Success response
 	utils.Ok(c, nil, "Password reset successfully")
 }
+
+// Profile returns the current authenticated user's profile.
+//
+// GET /api/profile (requires JWT)
+// Response: user_id from context in standard response format
+func (ctrl *AuthController) Profile(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	utils.Ok(c, gin.H{"user_id": userID}, "Profile retrieved successfully")
+}
