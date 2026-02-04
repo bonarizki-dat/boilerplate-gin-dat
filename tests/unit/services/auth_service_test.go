@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
-	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +22,7 @@ func TestValidateToken(t *testing.T) {
 	// In production, use test configuration with known secrets
 	t.Skip("Skipping: Requires SECRET configuration and test setup")
 
-	service := services.NewAuthService()
+	service := auth.NewAuthService()
 
 	tests := []struct {
 		name    string
@@ -158,7 +158,7 @@ func TestRefreshToken(t *testing.T) {
 	// 3. Test token rotation (old token invalidated, new token issued)
 	t.Skip("Skipping: Requires mocked repository and test database setup")
 
-	service := services.NewAuthService()
+	service := auth.NewAuthService()
 
 	tests := []struct {
 		name          string
@@ -175,13 +175,13 @@ func TestRefreshToken(t *testing.T) {
 		{
 			name:          "Invalid refresh token",
 			refreshToken:  "invalid-token",
-			expectError:   services.ErrInvalidRefreshToken,
+			expectError:   auth.ErrInvalidRefreshToken,
 			expectedValid: false,
 		},
 		{
 			name:          "Empty refresh token",
 			refreshToken:  "",
-			expectError:   services.ErrInvalidRefreshToken,
+			expectError:   auth.ErrInvalidRefreshToken,
 			expectedValid: false,
 		},
 	}
@@ -218,7 +218,7 @@ func TestForgotPassword(t *testing.T) {
 	// 4. Test email not found scenario (security - don't reveal user existence)
 	t.Skip("Skipping: Requires mocked repository and test database setup")
 
-	service := services.NewAuthService()
+	service := auth.NewAuthService()
 
 	tests := []struct {
 		name        string
@@ -235,7 +235,7 @@ func TestForgotPassword(t *testing.T) {
 		{
 			name:        "Email not found",
 			email:       "nonexistent@example.com",
-			expectError: services.ErrUserNotFound,
+			expectError: auth.ErrUserNotFound,
 			expectToken: false,
 		},
 		{
@@ -280,7 +280,7 @@ func TestResetPassword(t *testing.T) {
 	// 5. Test token cleanup after successful reset
 	t.Skip("Skipping: Requires mocked repository and test database setup")
 
-	service := services.NewAuthService()
+	service := auth.NewAuthService()
 
 	tests := []struct {
 		name        string
@@ -298,13 +298,13 @@ func TestResetPassword(t *testing.T) {
 			name:        "Invalid reset token",
 			token:       "invalid-token",
 			newPassword: "NewSecurePass123!",
-			expectError: services.ErrInvalidResetToken,
+			expectError: auth.ErrInvalidResetToken,
 		},
 		{
 			name:        "Expired reset token",
 			token:       "expired-token",
 			newPassword: "NewSecurePass123!",
-			expectError: services.ErrResetTokenExpired,
+			expectError: auth.ErrResetTokenExpired,
 		},
 		{
 			name:        "Short password",

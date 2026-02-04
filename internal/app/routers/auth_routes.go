@@ -3,13 +3,13 @@ package routers
 import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/controllers"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/middlewares"
-	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
 	"github.com/gin-gonic/gin"
 )
 
 // RegisterAuthRoutes registers authentication routes (register, login, refresh, forgot-password, reset-password).
 // Applies rate limiting via RateLimitMiddleware; limits read from RATE_LIMIT_RPS / RATE_LIMIT_BURST in middleware.
-func RegisterAuthRoutes(router *gin.Engine, authService *services.AuthService) {
+func RegisterAuthRoutes(router *gin.Engine, authService *auth.AuthService) {
 	authController := controllers.NewAuthController(authService)
 	authRoutes := router.Group("/auth")
 	authRoutes.Use(middlewares.RateLimitMiddleware())

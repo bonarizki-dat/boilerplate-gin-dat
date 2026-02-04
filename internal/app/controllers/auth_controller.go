@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
-	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
@@ -13,11 +13,11 @@ import (
 
 // AuthController handles authentication-related HTTP requests
 type AuthController struct {
-	service *services.AuthService
+	service *auth.AuthService
 }
 
 // NewAuthController creates a new AuthController instance
-func NewAuthController(service *services.AuthService) *AuthController {
+func NewAuthController(service *auth.AuthService) *AuthController {
 	return &AuthController{
 		service: service,
 	}
@@ -42,7 +42,7 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 
 	response, err := ctrl.service.Register(ctx, &req)
 	if err != nil {
-		if errors.Is(err, services.ErrEmailAlreadyExists) {
+		if errors.Is(err, auth.ErrEmailAlreadyExists) {
 			logger.LogFinish(ctx, "AuthController.Register", err, start)
 			utils.Conflict(c, err, "Email already exists")
 			return
@@ -76,7 +76,7 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 
 	response, err := ctrl.service.Login(ctx, &req)
 	if err != nil {
-		if errors.Is(err, services.ErrInvalidCredentials) {
+		if errors.Is(err, auth.ErrInvalidCredentials) {
 			logger.LogFinish(ctx, "AuthController.Login", err, start)
 			utils.Unauthorized(c, err, "Invalid email or password")
 			return
@@ -110,7 +110,7 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 
 	response, err := ctrl.service.RefreshToken(ctx, &req)
 	if err != nil {
-		if errors.Is(err, services.ErrInvalidRefreshToken) {
+		if errors.Is(err, auth.ErrInvalidRefreshToken) {
 			logger.LogFinish(ctx, "AuthController.RefreshToken", err, start)
 			utils.Unauthorized(c, err, "Invalid or expired refresh token")
 			return
@@ -144,7 +144,7 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 
 	resetToken, err := ctrl.service.ForgotPassword(ctx, &req)
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
+		if errors.Is(err, auth.ErrUserNotFound) {
 			logger.LogFinish(ctx, "AuthController.ForgotPassword", err, start)
 			utils.Ok(c, nil, "If the email exists, a password reset link has been sent")
 			return
@@ -189,12 +189,12 @@ func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 
 	err = ctrl.service.ResetPassword(ctx, &req)
 	if err != nil {
-		if errors.Is(err, services.ErrInvalidResetToken) {
+		if errors.Is(err, auth.ErrInvalidResetToken) {
 			logger.LogFinish(ctx, "AuthController.ResetPassword", err, start)
 			utils.BadRequest(c, err, "Invalid reset token")
 			return
 		}
-		if errors.Is(err, services.ErrResetTokenExpired) {
+		if errors.Is(err, auth.ErrResetTokenExpired) {
 			logger.LogFinish(ctx, "AuthController.ResetPassword", err, start)
 			utils.BadRequest(c, err, "Reset token has expired")
 			return

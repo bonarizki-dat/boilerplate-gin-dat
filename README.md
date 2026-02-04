@@ -150,23 +150,27 @@ If you're an AI agent or using AI-assisted development:
 
 **For Human Developers**
 
-| Document | Size | Purpose |
-|----------|------|---------|
-| [docs/README.md](docs/README.md) | Quick | Documentation navigation guide |
-| [docs/00_AI_CRITICAL_RULES.md](docs/00_AI_CRITICAL_RULES.md) | 100 lines | Critical rules summary |
-| [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) | 1955 lines | Comprehensive coding standards |
-| [docs/DESIGN_PATTERNS.md](docs/DESIGN_PATTERNS.md) | 2479 lines | Architecture and design patterns |
-| [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | Full | Health checks, metrics, request tracing |
-| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Full | Environment management & validation |
-| [TESTING.md](TESTING.md) | Full | Complete testing guide |
-| [tests/README.md](tests/README.md) | Quick | Test organization |
+| Document | Purpose |
+|----------|---------|
+| [docs/README.md](docs/README.md) | Documentation navigation guide |
+| [docs/DOCS_INDEX.md](docs/DOCS_INDEX.md) | Quick keyword lookup and line references |
+| [docs/00_AI_CRITICAL_RULES.md](docs/00_AI_CRITICAL_RULES.md) | Critical rules summary (Tier 0–2) |
+| [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) | Comprehensive coding standards |
+| [docs/DESIGN_PATTERNS.md](docs/DESIGN_PATTERNS.md) | Architecture and design patterns |
+| [docs/CONTROLLER_COMPLIANCE_AUDIT.md](docs/CONTROLLER_COMPLIANCE_AUDIT.md) | Controller/router compliance checklist |
+| [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | Health checks, metrics, request tracing |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment management & validation |
+| [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) | Auth flows and JWT usage |
+| [tests/README.md](tests/README.md) | Test organization and structure |
+| [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md) | High-level project analysis and metrics |
 
 **Quick Links:**
 - 🏗️ [Architecture Overview](#-architecture)
 - 🔐 [Authentication Guide](#-authentication-endpoints)
 - 📊 [Observability Guide](docs/OBSERVABILITY.md) - Health checks, metrics, tracing
 - ⚙️ [Configuration Guide](docs/CONFIGURATION.md) - Environment management
-- 🧪 [Testing Guide](TESTING.md)
+- 🧪 [Test Structure](tests/README.md)
+- 📋 [Controller Compliance](docs/CONTROLLER_COMPLIANCE_AUDIT.md) - Standards checklist
 - 🗄️ [Database Migrations](internal/adapters/database/migrations/sql/README.md)
 - 🐳 [Docker Setup](#-docker-development)
 
@@ -220,42 +224,53 @@ This boilerplate follows **Clean Architecture** principles with a layered approa
 
 ```
 project/
-├── cmd/                        # Commands (migrate, seeder)
 ├── internal/                   # Private application code
 │   ├── adapters/              # External adapters (DB, cache)
+│   │   └── database/          # GORM, migrations (SQL + AutoMigrate)
 │   ├── app/
 │   │   ├── controllers/       # HTTP handlers (struct-based)
 │   │   ├── dto/               # Data Transfer Objects
-│   │   ├── middlewares/       # Gin middlewares
-│   │   ├── routers/           # Route definitions
-│   │   └── services/          # Business logic (struct-based)
+│   │   ├── middlewares/       # Gin middlewares (auth, CORS, rate limit, metrics)
+│   │   ├── routers/           # One file per feature; index.go registers only
+│   │   │   ├── index.go       # Calls Register*Routes only
+│   │   │   ├── health_routes.go
+│   │   │   ├── auth_routes.go
+│   │   │   └── example_routes.go
+│   │   └── services/          # Business logic; split features in subfolders
+│   │       ├── auth/          # Auth service (split → subfolder, package auth)
+│   │       │   ├── auth_service.go
+│   │       │   └── auth_service_tokens.go
+│   │       ├── health_service.go
+│   │       └── example_service.go
 │   └── domain/
 │       ├── models/            # Database entities (GORM)
-│       └── repositories/      # Data access layer
+│       └── repositories/      # Data access layer (function-based CRUD)
 ├── pkg/                       # Public reusable packages
 │   ├── config/               # Configuration management
 │   ├── logger/               # Logging infrastructure
-│   ├── types/                # Shared types
-│   └── utils/                # Utility functions
-│       └── response.go       # MUST use for all responses
-├── tests/                    # ALL tests go here
-│   ├── unit/                 # Unit tests
-│   │   ├── controllers/
-│   │   ├── services/
-│   │   └── repositories/
-│   ├── integration/          # Integration tests
-│   └── fixtures/             # Test data
-├── docs/                     # Documentation
+│   ├── metrics/               # Prometheus-style metrics
+│   ├── types/                # Shared types (response, errors)
+│   └── utils/                # MUST use for all HTTP responses
+│       ├── response.go       # Ok, Created, HandleErrors, HandleErrorsWithData, etc.
+│       ├── validator.go      # Validation helpers
+│       └── search.go         # Search/pagination utilities
+├── tests/                    # ALL tests go here (not co-located)
+│   ├── unit/                 # Unit tests (controllers, services, middlewares)
+│   ├── integration/          # API and database integration tests
+│   └── fixtures/             # Test data (JSON, etc.)
+├── docs/                     # Documentation (standards, patterns, audits)
+├── scripts/                  # Porting and maintenance scripts
 └── main.go                   # Application entry point
 ```
 
 **Key Principles:**
-- ✅ Controllers are thin (validation + call service)
-- ✅ Services contain all business logic
+- ✅ Controllers are thin (validation → call service → response via `pkg/utils`)
+- ✅ Services contain all business logic; controllers never call repositories directly
 - ✅ Repositories only do CRUD operations
-- ✅ No circular dependencies
-- ✅ Dependency injection via constructors
-- ❌ Controllers never access database directly
+- ✅ Routers: one file per feature (`*_routes.go`); `index.go` only calls `Register*Routes`
+- ✅ **Split = subfolder:** When a service/controller/repository is split into multiple files, move all files for that feature into a new subfolder (e.g. `services/auth/`) with package name = folder name; parent folder keeps only single-file features. See [CODING_STANDARDS §1.1](docs/CODING_STANDARDS.md).
+- ✅ No circular dependencies; dependency injection via constructors
+- ❌ Controllers never access database or repository directly
 - ❌ Repositories never contain business logic
 
 ---
@@ -479,7 +494,7 @@ package services_test
 
 import (
     "testing"
-    "github.com/your-org/project/internal/app/services"
+    "github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
 )
 
 func TestAuthService_ValidateToken(t *testing.T) {
@@ -506,7 +521,7 @@ func TestAuthService_ValidateToken(t *testing.T) {
 }
 ```
 
-See [TESTING.md](TESTING.md) for comprehensive testing guide.
+See [tests/README.md](tests/README.md) for test organization and patterns.
 
 ---
 
@@ -822,7 +837,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Design Patterns](docs/DESIGN_PATTERNS.md)
 - [Observability Guide](docs/OBSERVABILITY.md)
 - [Configuration Guide](docs/CONFIGURATION.md)
-- [Testing Guide](TESTING.md)
+- [Test Structure](tests/README.md)
+- [Controller Compliance Audit](docs/CONTROLLER_COMPLIANCE_AUDIT.md)
 
 ---
 

@@ -117,7 +117,8 @@ After reading `00_AI_CRITICAL_RULES.md`, focus on these sections:
 
 **Action when exceeding:**
 - Split into multiple focused files
-- Example: `user_service.go` → `user_service.go` + `user_validation.go` + `user_transformation.go`
+- **Wajib subfolder saat split:** Jika satu fitur (service, controller, atau repository) dipecah menjadi lebih dari satu file, pindahkan **semua** file fitur tersebut ke subfolder baru dengan nama fitur. Parent folder hanya berisi fitur yang masih satu file. Contoh: `auth_service.go` + `auth_service_tokens.go` → pindah ke `services/auth/auth_service.go` + `services/auth/auth_service_tokens.go` (package `auth`). Dengan begitu fitur yang di-split tetap terkumpul dan struktur tetap rapi.
+- Contoh lain: `controllers/user_controller.go` + `controllers/user_validation.go` → `controllers/user/user_controller.go` + `controllers/user/user_validation.go` (package `user`).
 
 ### 1.2 Directory Structure
 
@@ -135,7 +136,7 @@ project/
 │   │   ├── dto/               # Data Transfer Objects
 │   │   ├── middlewares/       # Gin middlewares
 │   │   ├── routers/           # Route definitions
-│   │   └── services/          # Business logic (fat layer)
+│   │   └── services/          # Business logic; fitur di-split → subfolder (e.g. services/auth/)
 │   └── domain/
 │       ├── models/            # Database entities
 │       └── repositories/      # Data access layer
@@ -1747,6 +1748,10 @@ c.JSON(500, map[string]string{"message": "error"})
 #### Pengecualian response format pihak ketiga
 
 Bila endpoint **harus** mengikuti format eksternal (mis. DataTables server-side, protokol pihak ketiga), response boleh dikirim dengan helper library tersebut asalkan konsisten dan didokumentasikan. Contoh: `ExampleController.GetDataDatatables` menggunakan `datatables.JSON(c, data)` untuk format DataTables, bukan `utils.Ok`. Error path tetap menggunakan response utils.
+
+#### Pengecualian service menerima gin.Context (DataTables)
+
+Aturan umum: service **MUST NOT** menerima atau memakai `gin.Context`. Pengecualian: bila integrasi library pihak ketiga (mis. Datatables-Gin) **memerlukan** `*gin.Context` untuk binding query params (draw, start, length, search, order), method service yang memanggil library tersebut boleh menerima `(ctx context.Context, c *gin.Context)` agar tidak duplikasi seluruh API library ke DTO. Contoh: `ExampleService.GetDataDatatables(ctx, c)` dan `repositories.GetDataDatatables(c)` — pengecualian ini dicatat di [SERVICE_COMPLIANCE_AUDIT.md](SERVICE_COMPLIANCE_AUDIT.md). Service lain tetap dilarang memakai `gin.Context`.
 
 #### Standard Response Format
 

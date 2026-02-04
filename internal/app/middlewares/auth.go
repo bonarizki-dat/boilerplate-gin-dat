@@ -3,7 +3,7 @@ package middlewares
 import (
 	"strings"
 
-	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -14,7 +14,7 @@ import (
 // Expects Authorization header with format: "Bearer <token>"
 // On success, sets "user_id" in gin.Context
 // On failure, returns 401 Unauthorized
-func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
+func AuthMiddleware(authService *auth.AuthService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// Get Authorization header
 		authHeader := ctx.GetHeader("Authorization")
