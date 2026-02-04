@@ -1815,6 +1815,12 @@ func CreateUser(c *gin.Context) {
 }
 ```
 
+#### Error strategy (layers)
+
+- **HTTP response:** All HTTP responses MUST go through `pkg/utils` (e.g. `utils.Ok`, `utils.BadRequest`, `utils.HandleErrors`). Controllers map service/domain errors to these utilities; no direct `c.JSON` for error/success.
+- **Domain/business errors:** Use typed errors in the service layer (e.g. `auth.ErrEmailAlreadyExists`, `auth.ErrInvalidCredentials`). Controllers use `errors.Is(err, auth.Err...)` to choose the right HTTP status and message. Keeps business rules in one place.
+- **`pkg/types/errors`:** `APIError`, `ErrNotFound`, etc. are for specific use cases (e.g. client SDK, internal mapping). Do not duplicate with domain errors; prefer domain errors in services and map to utils in controllers. Document in code when using `types.APIError` for a given flow.
+
 ### 11.5 API Versioning
 
 **MUST version API in URL path:**

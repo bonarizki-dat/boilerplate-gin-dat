@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
-	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 )
 
@@ -18,7 +17,7 @@ import (
 func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (resp *dto.RefreshTokenResponse, err error) {
 	ctx, start := logger.LogStart(ctx, "AuthService.RefreshToken")
 
-	user, err := repositories.GetUserByRefreshToken(req.RefreshToken)
+	user, err := s.userRepo.GetUserByRefreshToken(req.RefreshToken)
 	if err != nil {
 		logger.Errorf("failed to get user by refresh token: %v", err)
 		logger.LogFinish(ctx, "AuthService.RefreshToken", err, start)
@@ -49,7 +48,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 
 	// Update refresh token in database
 	user.RefreshToken = newRefreshToken
-	if err := repositories.UpdateUser(user); err != nil {
+	if err := s.userRepo.UpdateUser(user); err != nil {
 		logger.Errorf("failed to update refresh token: %v", err)
 		logger.LogFinish(ctx, "AuthService.RefreshToken", err, start)
 		return nil, fmt.Errorf("failed to update refresh token: %w", err)
@@ -75,7 +74,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswordRequest) (token string, err error) {
 	ctx, start := logger.LogStart(ctx, "AuthService.ForgotPassword")
 
-	user, err := repositories.GetUserByEmail(req.Email)
+	user, err := s.userRepo.GetUserByEmail(req.Email)
 	if err != nil {
 		logger.Errorf("failed to get user by email: %v", err)
 		logger.LogFinish(ctx, "AuthService.ForgotPassword", err, start)
@@ -102,7 +101,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 	user.PasswordResetExpiry = &expiry
 
 	// Save to database
-	if err := repositories.UpdateUser(user); err != nil {
+	if err := s.userRepo.UpdateUser(user); err != nil {
 		logger.Errorf("failed to save reset token: %v", err)
 		logger.LogFinish(ctx, "AuthService.ForgotPassword", err, start)
 		return "", fmt.Errorf("failed to save reset token: %w", err)
@@ -123,7 +122,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordRequest) (err error) {
 	ctx, start := logger.LogStart(ctx, "AuthService.ResetPassword")
 
-	user, err := repositories.GetUserByPasswordResetToken(req.Token)
+	user, err := s.userRepo.GetUserByPasswordResetToken(req.Token)
 	if err != nil {
 		logger.Errorf("failed to get user by reset token: %v", err)
 		logger.LogFinish(ctx, "AuthService.ResetPassword", err, start)
@@ -157,7 +156,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordR
 	user.PasswordResetExpiry = nil
 
 	// Save to database
-	if err := repositories.UpdateUser(user); err != nil {
+	if err := s.userRepo.UpdateUser(user); err != nil {
 		logger.Errorf("failed to update password: %v", err)
 		logger.LogFinish(ctx, "AuthService.ResetPassword", err, start)
 		return fmt.Errorf("failed to update password: %w", err)

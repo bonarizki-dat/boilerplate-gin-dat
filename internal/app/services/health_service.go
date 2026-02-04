@@ -10,31 +10,75 @@ import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/metrics"
 )
 
+// HealthChecker is a dependency health check (e.g. database, cache, HTTP).
+// Check returns status "ok" or "error" and an optional error.
+type HealthChecker interface {
+	Check(ctx context.Context) (string, error)
+}
+
 // HealthService handles health check operations.
 type HealthService struct {
-	// Dependencies can be added here if needed
+	checkers map[string]HealthChecker
 }
 
 // NewHealthService creates a new HealthService instance.
+// Use AddChecker to register dependency checkers (e.g. database, Redis).
 func NewHealthService() *HealthService {
-	return &HealthService{}
+	return &HealthService{
+		checkers: make(map[string]HealthChecker),
+	}
 }
 
-// CheckHealth performs health checks on application dependencies.
+// AddChecker registers a health checker by name.
+func (s *HealthService) AddChecker(name string, c HealthChecker) {
+	if s.checkers == nil {
+		s.checkers = make(map[string]HealthChecker)
+	}
+	s.checkers[name] = c
+}
+
+// DatabaseChecker implements HealthChecker for the application database.
+var _ HealthChecker = (*DatabaseChecker)(nil)
+
+type DatabaseChecker struct{}
+
+func (DatabaseChecker) Check(ctx context.Context) (string, error) {
+	if database.DB == nil {
+		logger.Warnf("health check: database not initialized")
+		return "error", nil
+	}
+	sqlDB, err := database.DB.DB()
+	if err != nil {
+		logger.Errorf("health check: failed to get database instance: %v", err)
+		return "error", err
+	}
+	pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(pingCtx); err != nil {
+		logger.Errorf("health check: database ping failed: %v", err)
+		return "error", err
+	}
+	return "ok", nil
+}
+
+// CheckHealth performs health checks on registered dependencies.
 //
-// Checks database connectivity and returns overall health status.
-// Returns "healthy" only if all checks pass.
+// Returns "healthy" only if all checkers return "ok".
 func (s *HealthService) CheckHealth(ctx context.Context) *dto.HealthResponse {
 	ctx, start := logger.LogStart(ctx, "HealthService.CheckHealth")
 
 	checks := make(map[string]string)
-
-	dbStatus := s.checkDatabase()
-	checks["database"] = dbStatus
+	for name, checker := range s.checkers {
+		status, _ := checker.Check(ctx)
+		checks[name] = status
+	}
 
 	overallStatus := "healthy"
-	if dbStatus != "ok" {
-		overallStatus = "unhealthy"
+	for _, status := range checks {
+		if status != "ok" {
+			overallStatus = "unhealthy"
+			break
+		}
 	}
 
 	logger.LogFinish(ctx, "HealthService.CheckHealth", nil, start)
@@ -60,31 +104,4 @@ func (s *HealthService) GetMetrics(ctx context.Context) *dto.MetricsResponse {
 		UptimeSeconds:   metrics.GetUptime(),
 		Timestamp:       time.Now(),
 	}
-}
-
-// checkDatabase verifies database connectivity.
-//
-// Returns "ok" if database is reachable, "error" otherwise.
-func (s *HealthService) checkDatabase() string {
-	// Handle nil database (test environment)
-	if database.DB == nil {
-		logger.Warnf("health check: database not initialized")
-		return "error"
-	}
-
-	sqlDB, err := database.DB.DB()
-	if err != nil {
-		logger.Errorf("health check: failed to get database instance: %v", err)
-		return "error"
-	}
-
-	// Ping database with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := sqlDB.PingContext(ctx); err != nil {
-		logger.Errorf("health check: database ping failed: %v", err)
-		return "error"
-	}
-
-	return "ok"
 }

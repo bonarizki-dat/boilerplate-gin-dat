@@ -5,6 +5,7 @@ import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/middlewares"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -17,7 +18,8 @@ func RegisterRoutes(route *gin.Engine) {
 
 	RegisterHealthRoutes(route)
 
-	authService := auth.NewAuthService()
+	userRepo := repositories.NewUserRepository()
+	authService := auth.NewAuthService(userRepo)
 	exampleService := services.NewExampleService()
 
 	RegisterAuthRoutes(route, authService)

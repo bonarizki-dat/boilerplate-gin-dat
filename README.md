@@ -494,11 +494,13 @@ package services_test
 
 import (
     "testing"
-    "github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services"
+    "github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
+    "github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
 )
 
 func TestAuthService_ValidateToken(t *testing.T) {
-    service := services.NewAuthService()
+    userRepo := repositories.NewUserRepository()
+    authService := auth.NewAuthService(userRepo)
 
     tests := []struct {
         name    string
@@ -512,7 +514,7 @@ func TestAuthService_ValidateToken(t *testing.T) {
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            _, err := service.ValidateToken(tt.token)
+            _, err := authService.ValidateToken(tt.token)
             if (err != nil) != tt.wantErr {
                 t.Errorf("ValidateToken() error = %v, wantErr %v", err, tt.wantErr)
             }

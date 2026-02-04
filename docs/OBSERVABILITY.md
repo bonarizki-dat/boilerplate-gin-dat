@@ -476,6 +476,16 @@ func (s *UserService) GetUser(ctx context.Context, userID string) (*models.User,
 
 Request ID is stored in `c.Request.Context()` by middleware. Controllers call `logger.LogStart(c.Request.Context(), spanName)` and pass the returned `ctx` into services; services call `logger.LogStart(ctx, spanName)` and `logger.LogFinish(ctx, spanName, err, start)` before every return. Use `logger.FromContext(ctx)` for ad-hoc log lines so every log line includes the same request_id.
 
+### Optional: Distributed tracing (OpenTelemetry)
+
+For full distributed tracing (trace ID + span ID across services), you can integrate OpenTelemetry:
+
+- **Feature flag:** Set `ENABLE_TRACING=true` (default `false`) to initialize a tracer.
+- **Middleware:** Create a middleware that starts a span per request, injects trace_id/span_id into context and log output.
+- **Logs:** Ensure every log line in request flow includes `trace_id` (and optionally `span_id`) so log aggregators can correlate with tracing backends (e.g. Jaeger).
+
+This boilerplate currently provides request ID only; add OpenTelemetry when you need cross-service trace correlation.
+
 ### Searching Logs by Request ID
 
 ```bash

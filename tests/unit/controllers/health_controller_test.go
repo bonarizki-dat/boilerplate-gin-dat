@@ -23,10 +23,10 @@ func setupHealthTestRouter() *gin.Engine {
 
 // TestHealthController_Health tests the health check endpoint
 func TestHealthController_Health(t *testing.T) {
-	// Initialize metrics for testing
 	metrics.Init()
 
 	service := services.NewHealthService()
+	service.AddChecker("database", &services.DatabaseChecker{})
 	controller := controllers.NewHealthController(service)
 
 	t.Run("Returns unhealthy status when database not initialized (test env)", func(t *testing.T) {
@@ -41,10 +41,10 @@ func TestHealthController_Health(t *testing.T) {
 		assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 
 		var response struct {
-			Success bool                `json:"success"`
-			Message string              `json:"message"`
-			Data    dto.HealthResponse  `json:"data"`
-			Errors  interface{}         `json:"errors"`
+			Success bool               `json:"success"`
+			Message string             `json:"message"`
+			Data    dto.HealthResponse `json:"data"`
+			Errors  interface{}        `json:"errors"`
 		}
 
 		err := json.Unmarshal(w.Body.Bytes(), &response)
@@ -57,8 +57,11 @@ func TestHealthController_Health(t *testing.T) {
 	})
 
 	t.Run("Returns standard response format", func(t *testing.T) {
+		svc := services.NewHealthService()
+		svc.AddChecker("database", &services.DatabaseChecker{})
+		ctrl := controllers.NewHealthController(svc)
 		router := setupHealthTestRouter()
-		router.GET("/health", controller.Health)
+		router.GET("/health", ctrl.Health)
 
 		req, _ := http.NewRequest(http.MethodGet, "/health", nil)
 		w := httptest.NewRecorder()
@@ -109,8 +112,8 @@ func TestHealthController_Metrics(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response struct {
-			Success bool                 `json:"success"`
-			Data    dto.MetricsResponse  `json:"data"`
+			Success bool                `json:"success"`
+			Data    dto.MetricsResponse `json:"data"`
 		}
 
 		err := json.Unmarshal(w.Body.Bytes(), &response)
@@ -172,6 +175,7 @@ func TestHealthController_Metrics(t *testing.T) {
 func BenchmarkHealthController_Health(b *testing.B) {
 	metrics.Init()
 	service := services.NewHealthService()
+	service.AddChecker("database", &services.DatabaseChecker{})
 	controller := controllers.NewHealthController(service)
 
 	router := setupHealthTestRouter()

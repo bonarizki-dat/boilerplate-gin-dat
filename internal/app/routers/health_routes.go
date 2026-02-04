@@ -14,8 +14,8 @@ import (
 // - Monitoring systems
 // - Observability metrics
 func RegisterHealthRoutes(router *gin.Engine) {
-	// Initialize service and controller
 	healthService := services.NewHealthService()
+	healthService.AddChecker("database", &services.DatabaseChecker{})
 	healthController := controllers.NewHealthController(healthService)
 
 	// Health check routes (no middleware needed)

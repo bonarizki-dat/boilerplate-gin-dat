@@ -121,6 +121,11 @@ go test -v ./tests/...
 go test -tags=integration ./tests/...
 ```
 
+### Integration test notes
+
+- **`tests/integration/api/health_test.go`** — Tests `GET /health` without requiring database. Expects 200 (healthy) or 503 (unhealthy). Run with: `go test ./tests/integration/api/...`
+- **`tests/integration/database/connection_test.go`** — Tests database connectivity. Skipped unless `TEST_DB_MASTER_DSN` is set (e.g. `host=localhost user=postgres password=... dbname=test port=5432 sslmode=disable`). Run with: `go test ./tests/integration/database/...`
+
 ## Testing Standards
 
 ### Table-Driven Tests

@@ -29,12 +29,12 @@ var (
 
 // AuthService handles authentication-related business logic
 type AuthService struct {
-	// Dependencies can be added here if needed
+	userRepo repositories.UserRepository
 }
 
-// NewAuthService creates a new AuthService instance
-func NewAuthService() *AuthService {
-	return &AuthService{}
+// NewAuthService creates a new AuthService instance with the given user repository.
+func NewAuthService(userRepo repositories.UserRepository) *AuthService {
+	return &AuthService{userRepo: userRepo}
 }
 
 // Register creates a new user account with validation and password hashing.
@@ -44,7 +44,7 @@ func NewAuthService() *AuthService {
 func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (resp *dto.AuthResponse, err error) {
 	ctx, start := logger.LogStart(ctx, "AuthService.Register")
 
-	existingUser, err := repositories.GetUserByEmail(req.Email)
+	existingUser, err := s.userRepo.GetUserByEmail(req.Email)
 	if err != nil {
 		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to check email: %w", err)
@@ -72,7 +72,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 	}
 
 	// Save to database
-	if err = repositories.CreateUser(user); err != nil {
+	if err = s.userRepo.CreateUser(user); err != nil {
 		logger.Errorf("failed to create user: %v", err)
 		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -98,7 +98,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 
 	// Save refresh token to database
 	user.RefreshToken = refreshToken
-	if err := repositories.UpdateUser(user); err != nil {
+	if err := s.userRepo.UpdateUser(user); err != nil {
 		logger.Errorf("failed to save refresh token: %v", err)
 		logger.LogFinish(ctx, "AuthService.Register", err, start)
 		return nil, fmt.Errorf("failed to save refresh token: %w", err)
@@ -126,7 +126,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *dto.AuthResponse, err error) {
 	ctx, start := logger.LogStart(ctx, "AuthService.Login")
 
-	user, err := repositories.GetUserByEmail(req.Email)
+	user, err := s.userRepo.GetUserByEmail(req.Email)
 	if err != nil {
 		logger.Errorf("failed to get user: %v", err)
 		logger.LogFinish(ctx, "AuthService.Login", err, start)
@@ -166,7 +166,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 
 	// Save refresh token to database
 	user.RefreshToken = refreshToken
-	if err := repositories.UpdateUser(user); err != nil {
+	if err := s.userRepo.UpdateUser(user); err != nil {
 		logger.Errorf("failed to save refresh token: %v", err)
 		logger.LogFinish(ctx, "AuthService.Login", err, start)
 		return nil, fmt.Errorf("failed to save refresh token: %w", err)

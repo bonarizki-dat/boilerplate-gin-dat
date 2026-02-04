@@ -6,8 +6,26 @@ import (
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/models"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
 	"github.com/stretchr/testify/assert"
 )
+
+// mockUserRepo is a test double for UserRepository (no DB).
+type mockUserRepo struct{}
+
+func (*mockUserRepo) GetUserByEmail(string) (*models.User, error)        { return nil, nil }
+func (*mockUserRepo) CreateUser(*models.User) error                      { return nil }
+func (*mockUserRepo) UpdateUser(*models.User) error                      { return nil }
+func (*mockUserRepo) GetUserByRefreshToken(string) (*models.User, error) { return nil, nil }
+func (*mockUserRepo) GetUserByPasswordResetToken(string) (*models.User, error) {
+	return nil, nil
+}
+
+func newAuthServiceWithMockRepo() *auth.AuthService {
+	var repo repositories.UserRepository = &mockUserRepo{}
+	return auth.NewAuthService(repo)
+}
 
 // NOTE: These tests demonstrate testing patterns for services.
 // In production, you should:
@@ -22,7 +40,7 @@ func TestValidateToken(t *testing.T) {
 	// In production, use test configuration with known secrets
 	t.Skip("Skipping: Requires SECRET configuration and test setup")
 
-	service := auth.NewAuthService()
+	service := newAuthServiceWithMockRepo()
 
 	tests := []struct {
 		name    string
@@ -158,7 +176,7 @@ func TestRefreshToken(t *testing.T) {
 	// 3. Test token rotation (old token invalidated, new token issued)
 	t.Skip("Skipping: Requires mocked repository and test database setup")
 
-	service := auth.NewAuthService()
+	service := newAuthServiceWithMockRepo()
 
 	tests := []struct {
 		name          string
@@ -218,7 +236,7 @@ func TestForgotPassword(t *testing.T) {
 	// 4. Test email not found scenario (security - don't reveal user existence)
 	t.Skip("Skipping: Requires mocked repository and test database setup")
 
-	service := auth.NewAuthService()
+	service := newAuthServiceWithMockRepo()
 
 	tests := []struct {
 		name        string
@@ -280,7 +298,7 @@ func TestResetPassword(t *testing.T) {
 	// 5. Test token cleanup after successful reset
 	t.Skip("Skipping: Requires mocked repository and test database setup")
 
-	service := auth.NewAuthService()
+	service := newAuthServiceWithMockRepo()
 
 	tests := []struct {
 		name        string

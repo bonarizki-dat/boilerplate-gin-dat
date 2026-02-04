@@ -226,11 +226,16 @@ The following environment variables **MUST** be set. The application will not st
 | `APP_ENV` | Application environment | `development` | Values: `development`, `staging`, `production` |
 | `DEBUG` | Debug mode | Auto (true in dev) | Set to `True` only in development |
 | `ALLOWED_HOSTS` | Allowed hosts | `0.0.0.0` | Comma-separated list |
-| `SERVER_TIMEZONE` | Server timezone | `Asia/Dhaka` | Must be valid IANA timezone (e.g. UTC, Asia/Jakarta). Default applied in main.go when unset. |
+| `SERVER_TIMEZONE` | Server timezone | `UTC` | Must be valid IANA timezone (e.g. UTC, Asia/Jakarta). Default applied in main.go when unset. |
 | `RATE_LIMIT_RPS` | Auth rate limit (requests per second per IP) | `100` | Applied to `/auth` routes only. Set to 0 or omit to use default. |
 | `RATE_LIMIT_BURST` | Auth rate limit burst size | `200` | Max tokens in bucket. Set to 0 or omit to use default. |
 | `MASTER_DB_LOG_MODE` | Enable DB query logging | `True` | Set to `False` in production |
 | `MASTER_SSL_MODE` | Database SSL mode | `disable` | Use `require` in production |
+| `SERVER_SHUTDOWN_TIMEOUT` | Graceful shutdown timeout (seconds) | `10` | Max time to wait for in-flight requests before exit |
+
+### Graceful Shutdown
+
+The application handles `SIGTERM` and `SIGINT` (e.g. Ctrl+C) for graceful shutdown: it stops accepting new requests, waits for in-flight requests to complete (up to `SERVER_SHUTDOWN_TIMEOUT` seconds), then closes the database connection and exits. Optional env `SERVER_SHUTDOWN_TIMEOUT` (integer, seconds) defaults to 10 if unset or zero.
 
 ### Replica Database (Optional)
 

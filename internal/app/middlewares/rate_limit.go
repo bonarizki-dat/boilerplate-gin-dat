@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -88,23 +89,32 @@ func initRateLimiter() {
 	})
 }
 
+// rateLimitKey returns the key for rate limiting: user ID if RATE_LIMIT_USE_USER is true
+// and user_id is set in context (e.g. by AuthMiddleware), otherwise client IP.
+func rateLimitKey(c *gin.Context) string {
+	if viper.GetBool("RATE_LIMIT_USE_USER") {
+		if userID, exists := c.Get("user_id"); exists {
+			if id, ok := userID.(uint); ok {
+				return fmt.Sprintf("user:%d", id)
+			}
+		}
+	}
+	return c.ClientIP()
+}
+
 // RateLimitMiddleware creates a rate limiting middleware.
 //
-// Limits requests per IP. Reads RATE_LIMIT_RPS and RATE_LIMIT_BURST from config;
-// if unset or <= 0, uses defaults 100 req/s and burst 200.
+// Limits requests per IP (or per user if RATE_LIMIT_USE_USER=true and user_id is in context).
+// Reads RATE_LIMIT_RPS and RATE_LIMIT_BURST from config; if unset or <= 0, uses defaults 100 req/s and burst 200.
 func RateLimitMiddleware() gin.HandlerFunc {
 	initRateLimiter()
 
 	return func(c *gin.Context) {
-		// Get client IP
-		ip := c.ClientIP()
+		key := rateLimitKey(c)
+		limiter := globalLimiter.GetLimiter(key)
 
-		// Get limiter for this IP
-		limiter := globalLimiter.GetLimiter(ip)
-
-		// Check if request is allowed
 		if !limiter.Allow() {
-			logger.Warnf("rate limit exceeded for IP: %s", ip)
+			logger.Warnf("rate limit exceeded for key: %s", key)
 			utils.TooManyRequests(c, nil, "Rate limit exceeded. Please try again later.")
 			c.Abort()
 			return

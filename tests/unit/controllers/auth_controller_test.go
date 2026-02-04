@@ -10,6 +10,7 @@ import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/controllers"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,9 +22,9 @@ func setupTestRouter() *gin.Engine {
 	return router
 }
 
-// setupAuthController creates an AuthController for testing
+// setupAuthController creates an AuthController for testing (uses real UserRepository; for isolated tests use a mock).
 func setupAuthController() *controllers.AuthController {
-	authService := auth.NewAuthService()
+	authService := auth.NewAuthService(repositories.NewUserRepository())
 	return controllers.NewAuthController(authService)
 }
 

@@ -20,29 +20,51 @@ type Configuration struct {
 	Database DatabaseConfiguration
 }
 
-// SetupConfig loads and validates configuration from .env file
-func SetupConfig() error {
-	var configuration *Configuration
+var appConfig *Configuration
 
-	// Load .env file
+// Get returns the loaded configuration. Call after SetupConfig().
+// Returns nil if config has not been loaded.
+func Get() *Configuration {
+	return appConfig
+}
+
+// SetupConfig loads and validates configuration from .env file
+// and stores it in the global config (accessible via Get()).
+func SetupConfig() error {
 	viper.SetConfigFile(".env")
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Errorf("Error reading config file, %s", err)
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Unmarshal to struct
-	err := viper.Unmarshal(&configuration)
-	if err != nil {
-		logger.Errorf("Error decoding config, %v", err)
-		return fmt.Errorf("failed to decode config: %w", err)
-	}
-
-	// Validate configuration
 	if err := ValidateConfig(); err != nil {
 		logger.Errorf("Config validation failed, %v", err)
 		return fmt.Errorf("config validation failed: %w", err)
 	}
+
+	appConfig = &Configuration{
+		Server: ServerConfiguration{
+			Port:   viper.GetString("SERVER_PORT"),
+			Secret: viper.GetString("SECRET"),
+		},
+		Database: DatabaseConfiguration{
+			Dbname:   viper.GetString("MASTER_DB_NAME"),
+			Username: viper.GetString("MASTER_DB_USER"),
+			Password: viper.GetString("MASTER_DB_PASSWORD"),
+			Host:     viper.GetString("MASTER_DB_HOST"),
+			Port:     viper.GetString("MASTER_DB_PORT"),
+			LogMode:  viper.GetBool("MASTER_DB_LOG_MODE"),
+		},
+	}
+	if appConfig.Server.Port == "" {
+		appConfig.Server.Port = "8000"
+	}
+	host := viper.GetString("SERVER_HOST")
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	// ServerConfig() still needs host for addr; store in struct for future use
+	appConfig.Server.Host = host
 
 	logger.Infof("Configuration loaded and validated successfully")
 	return nil
