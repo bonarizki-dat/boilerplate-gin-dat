@@ -3,7 +3,6 @@ package database
 import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
-	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -15,12 +14,11 @@ var DB *gorm.DB
 // DbConnection create database connection
 func DbConnection(masterDSN, replicaDSN string) error {
 	logMode := false
+	debug := false
 	if c := config.Get(); c != nil {
 		logMode = c.Database.LogMode
-	} else {
-		logMode = viper.GetBool("MASTER_DB_LOG_MODE")
+		debug = c.Server.Debug
 	}
-	debug := viper.GetBool("DEBUG")
 
 	loglevel := gormlogger.Silent
 	if logMode {

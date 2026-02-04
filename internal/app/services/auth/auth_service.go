@@ -11,9 +11,9 @@ import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/models"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -192,8 +192,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 //
 // Returns error if token is invalid, expired, or malformed.
 func (s *AuthService) ValidateToken(tokenString string) (uint, error) {
-	// Get JWT secret from config
-	secret := viper.GetString("JWT_SECRET")
+	secret := s.jwtSecret()
 	if secret == "" {
 		return 0, errors.New("JWT secret not configured")
 	}
@@ -226,6 +225,14 @@ func (s *AuthService) ValidateToken(tokenString string) (uint, error) {
 
 // Private helper methods
 
+// jwtSecret returns the JWT secret from config. Empty if config not loaded or not set.
+func (s *AuthService) jwtSecret() string {
+	if c := config.Get(); c != nil {
+		return c.Server.JWTSecret
+	}
+	return ""
+}
+
 // hashPassword hashes a plain text password using bcrypt.
 func (s *AuthService) hashPassword(password string) (string, error) {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -245,8 +252,7 @@ func (s *AuthService) verifyPassword(hashedPassword, password string) error {
 // Token contains user ID and email in claims.
 // Expiry time is 24 hours from creation.
 func (s *AuthService) generateToken(user *models.User) (string, error) {
-	// Get JWT secret from config
-	secret := viper.GetString("JWT_SECRET")
+	secret := s.jwtSecret()
 	if secret == "" {
 		return "", errors.New("JWT secret not configured")
 	}

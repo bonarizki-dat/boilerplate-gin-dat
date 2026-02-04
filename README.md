@@ -4,7 +4,7 @@
 
 **Production-Ready Starter Kit for Building Scalable RESTful APIs**
 
-[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![Gin Framework](https://img.shields.io/badge/Gin-v1.11-00ADD8?style=flat)](https://github.com/gin-gonic/gin)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](docs/CODING_STANDARDS.md)
@@ -541,10 +541,14 @@ cp .env.example .env
 
 ```env
 # Server
-SECRET=your-super-secret-jwt-key-change-this
-DEBUG=True                    # Set False in production
+SECRET=your-super-secret-key-min-32-chars-CHANGE-THIS
+JWT_SECRET=your-jwt-secret-min-32-chars-CHANGE-THIS
+DEBUG=False                   # Set False in production
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8000
+SERVER_TIMEZONE=UTC           # IANA name (e.g. Asia/Jakarta)
+REQUEST_TIMEOUT_SECONDS=30    # Read/Write timeout per request
+SERVER_SHUTDOWN_TIMEOUT=10    # Graceful shutdown wait (seconds)
 
 # Database (Master)
 MASTER_DB_NAME=your_database
@@ -563,10 +567,12 @@ REPLICA_DB_PORT=5432
 ```
 
 **Security Notes:**
-- ⚠️ Change `SECRET` in production
+- ⚠️ Change `SECRET` and `JWT_SECRET` in production (min 32 chars each)
 - ⚠️ Set `DEBUG=False` in production
 - ⚠️ Set `MASTER_DB_LOG_MODE=False` in production
 - ⚠️ Never commit `.env` to version control
+
+Lengkap: [.env.example](.env.example) dan [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ### Database Configuration
 
@@ -694,7 +700,7 @@ See [migrations README](internal/adapters/database/migrations/sql/README.md) for
 
 ### Prerequisites
 
-- Go 1.24+
+- Go 1.25+
 - PostgreSQL 13+
 - Docker (optional)
 
@@ -703,7 +709,7 @@ See [migrations README](internal/adapters/database/migrations/sql/README.md) for
 ```bash
 □ Update .env with production values
 □ Set DEBUG=False
-□ Set strong SECRET key (min 32 chars)
+□ Set strong SECRET and JWT_SECRET (min 32 chars each)
 □ Set MASTER_DB_LOG_MODE=False
 □ Configure SSL for database
 □ Run database migrations
@@ -712,6 +718,10 @@ See [migrations README](internal/adapters/database/migrations/sql/README.md) for
 □ Set up SSL/TLS certificates
 □ Configure CORS for your domain
 ```
+
+**Runtime behavior (sudah ada di boilerplate):**
+- **Graceful shutdown:** SIGTERM/SIGINT → server drain in-flight requests, DB close (timeout via `SERVER_SHUTDOWN_TIMEOUT`, default 10s).
+- **Request timeout:** `ReadTimeout`/`WriteTimeout` di `http.Server` (default 30s, env `REQUEST_TIMEOUT_SECONDS`).
 
 ### Build for Production
 
@@ -731,8 +741,11 @@ make production
 ```env
 DEBUG=False
 SECRET=super-long-random-secret-key-min-32-chars
+JWT_SECRET=super-long-jwt-secret-key-min-32-chars
 MASTER_DB_LOG_MODE=False
 MASTER_SSL_MODE=require
+REQUEST_TIMEOUT_SECONDS=30
+SERVER_SHUTDOWN_TIMEOUT=10
 ```
 
 ---

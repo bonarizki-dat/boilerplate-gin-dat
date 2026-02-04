@@ -2,14 +2,40 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/types"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
+
+// authErrToAPIError maps known auth domain errors to types.APIError for HTTP response.
+// Returns nil if err is not a known auth error.
+func authErrToAPIError(err error) *types.APIError {
+	if err == nil {
+		return nil
+	}
+	switch {
+	case errors.Is(err, auth.ErrEmailAlreadyExists):
+		return &types.APIError{Code: http.StatusConflict, Message: "Email already exists", Details: nil}
+	case errors.Is(err, auth.ErrInvalidCredentials):
+		return &types.APIError{Code: http.StatusUnauthorized, Message: "Invalid email or password", Details: nil}
+	case errors.Is(err, auth.ErrInvalidRefreshToken):
+		return &types.APIError{Code: http.StatusUnauthorized, Message: "Invalid or expired refresh token", Details: nil}
+	case errors.Is(err, auth.ErrUserNotFound):
+		return &types.APIError{Code: http.StatusNotFound, Message: "User not found", Details: nil}
+	case errors.Is(err, auth.ErrInvalidResetToken):
+		return &types.APIError{Code: http.StatusBadRequest, Message: "Invalid reset token", Details: nil}
+	case errors.Is(err, auth.ErrResetTokenExpired):
+		return &types.APIError{Code: http.StatusBadRequest, Message: "Reset token has expired", Details: nil}
+	default:
+		return nil
+	}
+}
 
 // AuthController handles authentication-related HTTP requests
 type AuthController struct {
@@ -42,9 +68,9 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 
 	response, err := ctrl.service.Register(ctx, &req)
 	if err != nil {
-		if errors.Is(err, auth.ErrEmailAlreadyExists) {
+		if apiErr := authErrToAPIError(err); apiErr != nil {
 			logger.LogFinish(ctx, "AuthController.Register", err, start)
-			utils.Conflict(c, err, "Email already exists")
+			utils.RespondWithAPIError(c, apiErr)
 			return
 		}
 		logger.Errorf("registration failed: %v", err)
@@ -76,9 +102,9 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 
 	response, err := ctrl.service.Login(ctx, &req)
 	if err != nil {
-		if errors.Is(err, auth.ErrInvalidCredentials) {
+		if apiErr := authErrToAPIError(err); apiErr != nil {
 			logger.LogFinish(ctx, "AuthController.Login", err, start)
-			utils.Unauthorized(c, err, "Invalid email or password")
+			utils.RespondWithAPIError(c, apiErr)
 			return
 		}
 		logger.Errorf("login failed: %v", err)
@@ -110,9 +136,9 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 
 	response, err := ctrl.service.RefreshToken(ctx, &req)
 	if err != nil {
-		if errors.Is(err, auth.ErrInvalidRefreshToken) {
+		if apiErr := authErrToAPIError(err); apiErr != nil {
 			logger.LogFinish(ctx, "AuthController.RefreshToken", err, start)
-			utils.Unauthorized(c, err, "Invalid or expired refresh token")
+			utils.RespondWithAPIError(c, apiErr)
 			return
 		}
 		logger.Errorf("token refresh failed: %v", err)
@@ -147,6 +173,11 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 		if errors.Is(err, auth.ErrUserNotFound) {
 			logger.LogFinish(ctx, "AuthController.ForgotPassword", err, start)
 			utils.Ok(c, nil, "If the email exists, a password reset link has been sent")
+			return
+		}
+		if apiErr := authErrToAPIError(err); apiErr != nil {
+			logger.LogFinish(ctx, "AuthController.ForgotPassword", err, start)
+			utils.RespondWithAPIError(c, apiErr)
 			return
 		}
 		logger.Errorf("forgot password failed: %v", err)
@@ -189,14 +220,9 @@ func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 
 	err = ctrl.service.ResetPassword(ctx, &req)
 	if err != nil {
-		if errors.Is(err, auth.ErrInvalidResetToken) {
+		if apiErr := authErrToAPIError(err); apiErr != nil {
 			logger.LogFinish(ctx, "AuthController.ResetPassword", err, start)
-			utils.BadRequest(c, err, "Invalid reset token")
-			return
-		}
-		if errors.Is(err, auth.ErrResetTokenExpired) {
-			logger.LogFinish(ctx, "AuthController.ResetPassword", err, start)
-			utils.BadRequest(c, err, "Reset token has expired")
+			utils.RespondWithAPIError(c, apiErr)
 			return
 		}
 		logger.Errorf("password reset failed: %v", err)

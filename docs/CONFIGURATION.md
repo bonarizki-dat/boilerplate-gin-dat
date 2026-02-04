@@ -58,6 +58,8 @@ go run main.go
 
 The application will validate all required configuration on startup and **fail fast** if any required values are missing or using insecure defaults.
 
+**How config is loaded:** Environment variables are read once at startup in `config.SetupConfig()` (from `.env` via Viper). Application code in `internal/` reads configuration only through `config.Get()`, which returns the loaded `Configuration` struct (Server, Database, etc.). Do not read env or Viper directly in app code; use `config.Get()` instead.
+
 ---
 
 ## 🌍 Environment Detection (APP_ENV)

@@ -11,7 +11,14 @@ type ServerConfiguration struct {
 	Host                 string
 	Port                 string
 	Secret               string
+	JWTSecret            string
+	Debug                bool
+	AllowedHosts         string
 	LimitCountPerRequest int64
+	// Rate limit (used by middlewares)
+	RateLimitRPS     int
+	RateLimitBurst   int
+	RateLimitUseUser bool
 }
 
 func ServerConfig() string {

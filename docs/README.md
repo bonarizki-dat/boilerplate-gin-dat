@@ -42,8 +42,9 @@ Welcome to the project documentation. This guide helps you navigate all document
 | File | Size | Purpose | When to Read |
 |------|------|---------|--------------|
 | **00_AI_CRITICAL_RULES.md** | 100 lines | Non-negotiable rules | **FIRST - ALWAYS** |
+| **AI_AGENT_RULES.md** | ~700 lines | Mandatory rules for AI (file/function size, testing, docs, errors) | **IMPORTANT** |
 | **AI_QUICK_REFERENCE.md** | 405 lines | Templates & checklists | Before writing code |
-| **DOCS_INDEX.md** ⭐ NEW | ~500 lines | Master index with line refs | **BOOKMARK - use during work** |
+| **DOCS_INDEX.md** ⭐ | ~500 lines | Master index with line refs | **BOOKMARK - use during work** |
 | **CODING_STANDARDS.md** | 2,200+ lines | Complete coding standards | Reference (use Ctrl+F + line numbers) |
 | **DESIGN_PATTERNS.md** | 2,600+ lines | Architecture patterns | Reference (use Ctrl+F + line numbers) |
 
@@ -55,8 +56,13 @@ Welcome to the project documentation. This guide helps you navigate all document
 | **DESIGN_PATTERNS.md** | Architecture patterns, layer responsibilities, implementation guides |
 | **CONFIGURATION.md** | Environment configuration, validation, secrets management |
 | **OBSERVABILITY.md** | Health checks, metrics, request tracing, monitoring guide |
+| **AUTHENTICATION.md** | Auth flows, JWT, password reset |
 | **AI_QUICK_REFERENCE.md** | Quick templates and decision trees |
 | **00_AI_CRITICAL_RULES.md** | Quick reference for critical rules |
+| **AI_AGENT_RULES.md** | Mandatory rules for AI agents (file size, testing, docs, errors) |
+| **OPENTELEMETRY_TRACING_ANALYSIS.md** | Analisis opsional OpenTelemetry; request_id cukup untuk monolith |
+| **CONTROLLER_COMPLIANCE_AUDIT.md** | Checklist kepatuhan controller |
+| **SERVICE_COMPLIANCE_AUDIT.md** | Checklist kepatuhan service |
 
 ---
 
@@ -150,11 +156,11 @@ Welcome to the project documentation. This guide helps you navigate all document
 
 ## 📊 Documentation Statistics
 
-- **Total Documentation:** ~5,500 lines
-- **Critical Rules:** 100 lines (2%)
-- **Must Read Before Coding:** 505 lines (9%)
-- **Quick Lookup Index:** 500 lines (9%)
-- **Reference Material:** 4,800 lines (82%)
+- **Total Documentation:** ~5,000+ lines (setelah pembersihan dokumen redundan)
+- **Critical Rules:** 100 lines
+- **Must Read Before Coding:** 505 lines
+- **Quick Lookup Index:** DOCS_INDEX.md
+- **Reference Material:** CODING_STANDARDS, DESIGN_PATTERNS, CONFIGURATION, OBSERVABILITY, dll.
 
 **Efficiency Tip:**
 1. Read critical rules + quick ref first (~10 min)
@@ -165,16 +171,12 @@ Welcome to the project documentation. This guide helps you navigate all document
 
 ## 🔄 Document Updates
 
-**Last Updated:** 2025-11-09
+**Last Updated:** 2026-02-03
 
 **Recent Changes:**
-- Added `OBSERVABILITY.md` - Phase 1 observability (health checks, metrics, tracing) (2025-11-09)
-- Added `CONFIGURATION.md` - Environment management & validation (2025-11-09)
-- Added `DOCS_INDEX.md` - Master index with line number refs (2025-11-09)
-- Enhanced TOCs in CODING_STANDARDS.md & DESIGN_PATTERNS.md with keywords (2025-11-09)
-- Added `00_AI_CRITICAL_RULES.md` (2025-11-09)
-- Added router organization standards (2025-11-09)
-- Added tests/ directory structure requirements (2025-11-09)
+- `AI_AGENT_RULES.md` tetap dipakai (penting untuk AI agents).
+- Removed `IMPROVEMENT_PLAN.md` dan `IMPROVEMENTS.md` (semua item sudah selesai).
+- Added `OPENTELEMETRY_TRACING_ANALYSIS.md` - Analisis opsional OpenTelemetry; request_id cukup untuk monolith.
 
 ---
 

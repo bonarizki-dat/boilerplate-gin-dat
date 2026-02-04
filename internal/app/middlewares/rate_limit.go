@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 	"golang.org/x/time/rate"
 )
 
@@ -64,16 +64,17 @@ var (
 	once          sync.Once
 )
 
-// initRateLimiter initializes the global rate limiter from RATE_LIMIT_RPS and RATE_LIMIT_BURST env.
+// initRateLimiter initializes the global rate limiter from config (config.Get().Server).
 func initRateLimiter() {
 	once.Do(func() {
-		rps := viper.GetInt("RATE_LIMIT_RPS")
-		if rps <= 0 {
-			rps = 100
-		}
-		burst := viper.GetInt("RATE_LIMIT_BURST")
-		if burst <= 0 {
-			burst = 200
+		rps, burst := 100, 200
+		if c := config.Get(); c != nil {
+			if c.Server.RateLimitRPS > 0 {
+				rps = c.Server.RateLimitRPS
+			}
+			if c.Server.RateLimitBurst > 0 {
+				burst = c.Server.RateLimitBurst
+			}
 		}
 		globalLimiter = NewIPRateLimiter(rate.Limit(rps), burst)
 
@@ -89,10 +90,14 @@ func initRateLimiter() {
 	})
 }
 
-// rateLimitKey returns the key for rate limiting: user ID if RATE_LIMIT_USE_USER is true
+// rateLimitKey returns the key for rate limiting: user ID if RateLimitUseUser is true
 // and user_id is set in context (e.g. by AuthMiddleware), otherwise client IP.
 func rateLimitKey(c *gin.Context) string {
-	if viper.GetBool("RATE_LIMIT_USE_USER") {
+	useUser := false
+	if cfg := config.Get(); cfg != nil {
+		useUser = cfg.Server.RateLimitUseUser
+	}
+	if useUser {
 		if userID, exists := c.Get("user_id"); exists {
 			if id, ok := userID.(uint); ok {
 				return fmt.Sprintf("user:%d", id)

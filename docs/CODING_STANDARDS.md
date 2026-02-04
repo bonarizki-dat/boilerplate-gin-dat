@@ -800,6 +800,18 @@ func CreateUser(user *models.User) error {
 }
 ```
 
+### 5.5 Error Strategy (HTTP Response and Domain Errors)
+
+**HTTP responses:** All error responses to the client MUST go through `pkg/utils`: `utils.BadRequest`, `utils.Unauthorized`, `utils.RespondWithAPIError`, etc. Do not call `c.JSON(code, ...)` directly for errors.
+
+**Domain errors:** Services return domain-specific errors (e.g. `auth.ErrEmailAlreadyExists`, `auth.ErrInvalidCredentials`). Controllers map these to HTTP using either:
+- `utils.RespondWithAPIError(c, apiErr)` when the error is mapped to a `*types.APIError` (code, message, details), or
+- `utils.InternalServerError(c, err, "…")` (and similar) for unmapped or generic errors.
+
+**pkg/types/errors:** `types.APIError` and the predefined `Err*` values are used when mapping domain errors to HTTP. Map domain errors (e.g. with `errors.Is`) to `*types.APIError` in the controller, then call `utils.RespondWithAPIError`. Do not duplicate status-code logic in multiple places.
+
+**Validation errors:** Keep using `utils.BadRequest(c, err, "Invalid request data")` for `validator.ValidationErrors`; no need to convert to `types.APIError`.
+
 ---
 
 ## 6. DOCUMENTATION

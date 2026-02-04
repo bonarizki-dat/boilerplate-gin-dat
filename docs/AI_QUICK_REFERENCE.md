@@ -463,7 +463,7 @@ func validate(req Request) error {
 ## 📚 Quick Links
 
 - **Full Standards:** `CODING_STANDARDS.md`
-- **AI Rules:** `AI_AGENT_RULES.md`
+- **AI Rules:** `00_AI_CRITICAL_RULES.md`, `AI_AGENT_RULES.md`
 - **Refactoring Plan:** `REFACTORING_PLAN.md`
 - **Quality Checks:** `make -f Makefile.quality help`
 

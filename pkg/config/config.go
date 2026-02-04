@@ -42,10 +42,36 @@ func SetupConfig() error {
 		return fmt.Errorf("config validation failed: %w", err)
 	}
 
+	debug := false
+	if viper.IsSet("DEBUG") {
+		debug = viper.GetBool("DEBUG")
+	} else if viper.GetString("APP_ENV") == "" || viper.GetString("APP_ENV") == EnvDevelopment {
+		debug = true
+	}
+	allowedHosts := viper.GetString("ALLOWED_HOSTS")
+	if allowedHosts == "" {
+		allowedHosts = "0.0.0.0"
+	}
+	rps := viper.GetInt("RATE_LIMIT_RPS")
+	if rps <= 0 {
+		rps = 100
+	}
+	burst := viper.GetInt("RATE_LIMIT_BURST")
+	if burst <= 0 {
+		burst = 200
+	}
+
 	appConfig = &Configuration{
 		Server: ServerConfiguration{
-			Port:   viper.GetString("SERVER_PORT"),
-			Secret: viper.GetString("SECRET"),
+			Host:             viper.GetString("SERVER_HOST"),
+			Port:             viper.GetString("SERVER_PORT"),
+			Secret:           viper.GetString("SECRET"),
+			JWTSecret:        viper.GetString("JWT_SECRET"),
+			Debug:            debug,
+			AllowedHosts:     allowedHosts,
+			RateLimitRPS:     rps,
+			RateLimitBurst:   burst,
+			RateLimitUseUser: viper.GetBool("RATE_LIMIT_USE_USER"),
 		},
 		Database: DatabaseConfiguration{
 			Dbname:   viper.GetString("MASTER_DB_NAME"),
@@ -59,12 +85,9 @@ func SetupConfig() error {
 	if appConfig.Server.Port == "" {
 		appConfig.Server.Port = "8000"
 	}
-	host := viper.GetString("SERVER_HOST")
-	if host == "" {
-		host = "0.0.0.0"
+	if appConfig.Server.Host == "" {
+		appConfig.Server.Host = "0.0.0.0"
 	}
-	// ServerConfig() still needs host for addr; store in struct for future use
-	appConfig.Server.Host = host
 
 	logger.Infof("Configuration loaded and validated successfully")
 	return nil

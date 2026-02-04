@@ -2,20 +2,23 @@ package routers
 
 import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/middlewares"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 )
 
 func SetupRoute() *gin.Engine {
-
-	environment := viper.GetBool("DEBUG")
-	if environment {
+	cfg := config.Get()
+	debug := cfg != nil && cfg.Server.Debug
+	allowedHosts := "0.0.0.0"
+	if cfg != nil && cfg.Server.AllowedHosts != "" {
+		allowedHosts = cfg.Server.AllowedHosts
+	}
+	if debug {
 		gin.SetMode(gin.DebugMode)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	allowedHosts := viper.GetString("ALLOWED_HOSTS")
 	router := gin.New()
 	router.SetTrustedProxies([]string{allowedHosts})
 	router.Use(gin.Logger())

@@ -103,6 +103,16 @@ func FormatValidationErrors(err error) map[string]string {
 	return errors
 }
 
+// RespondWithAPIError sends an error response from a types.APIError (code, message, details).
+// Use when the controller has mapped a domain error to types.APIError.
+func RespondWithAPIError(c *gin.Context, apiErr *types.APIError) {
+	if apiErr == nil {
+		sendErrorResponse(c, http.StatusInternalServerError, "Internal server error", nil, nil)
+		return
+	}
+	sendErrorResponse(c, apiErr.Code, apiErr.Message, nil, apiErr.Details)
+}
+
 // sendErrorResponse is the single place that writes an error response (standard format).
 func sendErrorResponse(c *gin.Context, code int, message string, data interface{}, errors interface{}) {
 	if message == "" {

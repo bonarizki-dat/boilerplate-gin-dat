@@ -1,3 +1,10 @@
+// Package types provides shared types for API responses and errors.
+//
+// Error strategy: APIError and the predefined Err* values (ErrNotFound, ErrUnauthorized, etc.)
+// are used when mapping domain errors to HTTP responses. Controllers map service/domain errors
+// (e.g. auth.Err*) to types.APIError and send the response via utils.RespondWithAPIError.
+// All HTTP error responses go through pkg/utils (BadRequest, Unauthorized, RespondWithAPIError, etc.);
+// do not duplicate status-code logic outside the controller mapping and utils.
 package types
 
 import (
@@ -28,13 +35,14 @@ func NewAPIError(code int, message string, details interface{}) *APIError {
 
 // Predefined common errors
 var (
-	ErrInvalidInput     = NewAPIError(http.StatusBadRequest, "Invalid input data", nil)
-	ErrNotFound         = NewAPIError(http.StatusNotFound, "Resource not found", nil)
-	ErrUnauthorized     = NewAPIError(http.StatusUnauthorized, "Unauthorized access", nil)
-	ErrForbidden        = NewAPIError(http.StatusForbidden, "Access forbidden", nil)
-	ErrInternalServer   = NewAPIError(http.StatusInternalServerError, "Internal server error", nil)
-	ErrDatabaseError    = NewAPIError(http.StatusInternalServerError, "Database operation failed", nil)
-	ErrExternalService  = NewAPIError(http.StatusBadGateway, "External service error", nil)
+	ErrInvalidInput      = NewAPIError(http.StatusBadRequest, "Invalid input data", nil)
+	ErrNotFound          = NewAPIError(http.StatusNotFound, "Resource not found", nil)
+	ErrUnauthorized      = NewAPIError(http.StatusUnauthorized, "Unauthorized access", nil)
+	ErrForbidden         = NewAPIError(http.StatusForbidden, "Access forbidden", nil)
+	ErrConflict          = NewAPIError(http.StatusConflict, "Resource already exists", nil)
+	ErrInternalServer    = NewAPIError(http.StatusInternalServerError, "Internal server error", nil)
+	ErrDatabaseError     = NewAPIError(http.StatusInternalServerError, "Database operation failed", nil)
+	ErrExternalService   = NewAPIError(http.StatusBadGateway, "External service error", nil)
 	ErrRateLimitExceeded = NewAPIError(http.StatusTooManyRequests, "Rate limit exceeded", nil)
 )
 
