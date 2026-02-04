@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"net/http"
 
-	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"	
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/types"
 )
 
@@ -102,9 +103,8 @@ func FormatValidationErrors(err error) map[string]string {
 	return errors
 }
 
-// HandleErrors sends an error response in a standard format.
-// If the error is a validation error, it will return detailed field errors.
-func HandleErrors(c *gin.Context, code int, err error, message string) {
+// sendErrorResponse is the single place that writes an error response (standard format).
+func sendErrorResponse(c *gin.Context, code int, message string, data interface{}, errors interface{}) {
 	if message == "" {
 		if msg, ok := defaultHTTPMessages[code]; ok {
 			message = msg
@@ -112,29 +112,32 @@ func HandleErrors(c *gin.Context, code int, err error, message string) {
 			message = "Error"
 		}
 	}
+	c.JSON(code, types.ErrorResponse{
+		Success: false,
+		Message: message,
+		Data:    data,
+		Errors:  errors,
+	})
+}
 
+// HandleErrors sends an error response in a standard format.
+// If the error is a validation error, it will return detailed field errors.
+func HandleErrors(c *gin.Context, code int, err error, message string) {
 	if errs, ok := err.(validator.ValidationErrors); ok {
-		validationErrors := FormatValidationErrors(errs)
-		c.JSON(code, types.ErrorResponse{
-			Success: false,
-			Message: message,
-			Data:    nil,
-			Errors:  validationErrors,
-		})
+		sendErrorResponse(c, code, message, nil, FormatValidationErrors(errs))
 		return
 	}
-
 	errMsg := message
 	if err != nil {
 		errMsg = err.Error()
 	}
+	sendErrorResponse(c, code, message, nil, gin.H{"error": errMsg})
+}
 
-	c.JSON(code, types.ErrorResponse{
-		Success: false,
-		Message: message,
-		Data:    nil,
-		Errors:  gin.H{"error": errMsg},
-	})
+// HandleErrorsWithData sends an error response with a data payload (standard format).
+// Use for error status codes that include a body (e.g. 503 health check details).
+func HandleErrorsWithData(c *gin.Context, code int, data interface{}, message string) {
+	sendErrorResponse(c, code, message, data, nil)
 }
 
 // HandleSuccess sends a success response in a standard format.
@@ -219,4 +222,10 @@ func BadGateway(c *gin.Context, err error, message string) {
 // ServiceUnavailable is a shortcut to send a 503 Service Unavailable response
 func ServiceUnavailable(c *gin.Context, err error, message string) {
 	HandleErrors(c, http.StatusServiceUnavailable, err, message)
+}
+
+// ServiceUnavailableWithData sends 503 with a response body (standard format).
+// Use when the client should receive payload with the error (e.g. health check details).
+func ServiceUnavailableWithData(c *gin.Context, data interface{}, message string) {
+	HandleErrorsWithData(c, http.StatusServiceUnavailable, data, message)
 }

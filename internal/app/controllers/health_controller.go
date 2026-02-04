@@ -30,12 +30,7 @@ func (ctrl *HealthController) Health(c *gin.Context) {
 
 	if response.Status == "unhealthy" {
 		logger.LogFinish(ctx, "HealthController.Health", nil, start)
-		c.JSON(503, gin.H{
-			"success": false,
-			"message": "Service is unhealthy",
-			"data":    response,
-			"errors":  nil,
-		})
+		utils.ServiceUnavailableWithData(c, response, "Service is unhealthy")
 		return
 	}
 

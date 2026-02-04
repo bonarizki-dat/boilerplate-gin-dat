@@ -1741,6 +1741,12 @@ c.JSON(500, map[string]string{"message": "error"})
 **Generic Functions:**
 - `utils.HandleSuccess(c, code, data, message)` - Custom success status
 - `utils.HandleErrors(c, code, err, message)` - Custom error status
+- `utils.HandleErrorsWithData(c, code, data, message)` - Custom error status with body (e.g. health details)
+- `utils.ServiceUnavailableWithData(c, data, message)` - 503 with body; uses HandleErrorsWithData
+
+#### Pengecualian response format pihak ketiga
+
+Bila endpoint **harus** mengikuti format eksternal (mis. DataTables server-side, protokol pihak ketiga), response boleh dikirim dengan helper library tersebut asalkan konsisten dan didokumentasikan. Contoh: `ExampleController.GetDataDatatables` menggunakan `datatables.JSON(c, data)` untuk format DataTables, bukan `utils.Ok`. Error path tetap menggunakan response utils.
 
 #### Standard Response Format
 
