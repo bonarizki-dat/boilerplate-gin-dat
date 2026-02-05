@@ -45,9 +45,10 @@ func TestRateLimitMiddleware(t *testing.T) {
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			if w.Code == http.StatusOK {
+			switch w.Code {
+			case http.StatusOK:
 				successCount++
-			} else if w.Code == http.StatusTooManyRequests {
+			case http.StatusTooManyRequests:
 				blockedCount++
 			}
 		}
@@ -83,7 +84,8 @@ func TestRateLimitMiddleware(t *testing.T) {
 	})
 }
 
-// TestIPRateLimiter tests that different IPs have separate limits
+// TestIPRateLimiter tests that different IPs have separate limits.
+// Skipped: integration-style test (requires simulating different client IPs; run in API/integration tests).
 func TestIPRateLimiter(t *testing.T) {
 	t.Skip("Skipping: Requires IP simulation which is complex in unit tests")
 

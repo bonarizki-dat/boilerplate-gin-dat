@@ -11,6 +11,7 @@ import (
 )
 
 // RegisterRoutes adds all routing list here and delegates to Register* per feature.
+// API versioning: /health and /metrics at root; /api/v1/* for versioned API.
 func RegisterRoutes(route *gin.Engine) {
 	route.NoRoute(func(ctx *gin.Context) {
 		utils.NotFound(ctx, nil, "Route not found")
@@ -18,16 +19,18 @@ func RegisterRoutes(route *gin.Engine) {
 
 	RegisterHealthRoutes(route)
 
+	apiV1 := route.Group("/api/v1")
+	apiV1.Use(middlewares.RateLimitMiddleware())
 	userRepo := repositories.NewUserRepository()
-	authService := auth.NewAuthService(userRepo)
+	authService := auth.NewAuthService(userRepo, nil)
 	exampleService := services.NewExampleService()
 
-	RegisterAuthRoutes(route, authService)
-	RegisterExampleRoutes(route, exampleService)
+	RegisterAuthRoutes(apiV1, authService)
+	RegisterExampleRoutes(apiV1, exampleService)
 
 	// Protected routes (require authentication)
 	authController := controllers.NewAuthController(authService)
-	protectedRoutes := route.Group("/api")
+	protectedRoutes := apiV1.Group("")
 	protectedRoutes.Use(middlewares.AuthMiddleware(authService))
 	{
 		protectedRoutes.GET("/profile", authController.Profile)

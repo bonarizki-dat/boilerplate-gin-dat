@@ -38,6 +38,7 @@ Observability is the ability to understand the internal state of your applicatio
 - **Metrics Endpoint** → `/metrics` for monitoring request stats
 - **Request ID Middleware** → Track requests across logs
 - **Metrics Middleware** → Automatic request counting
+- **Global API rate limit** → Applied to all `/api/v1` routes (config: `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST`); auth routes use the same limits
 - **Minimal Overhead** → ~0.36ms per request (0.72%)
 
 ---
@@ -144,87 +145,24 @@ spec:
 
 ### Implementation Details
 
-**Controller:** `internal/app/controllers/health_controller.go`
+**Controller:** `internal/app/controllers/health_controller.go` — calls `ctrl.service.CheckHealth(ctx)` with request context and returns 200 or 503 based on status.
 
-```go
-func (ctrl *HealthController) Health(c *gin.Context) {
-    response := ctrl.service.CheckHealth()
+**Service:** `internal/app/services/health_service.go` — health is implemented with a pluggable checker pattern:
 
-    if response.Status == "unhealthy" {
-        utils.ServiceUnavailable(c, nil, "Service is unhealthy")
-        return
-    }
+- **`CheckHealth(ctx context.Context)`** returns overall `"healthy"` only if every registered checker returns `"ok"`.
+- **`AddChecker(name string, c HealthChecker)`** registers a dependency checker. The **HealthChecker** interface has a single method: `Check(ctx context.Context) (string, error)` returning `"ok"` or `"error"`.
+- The database is registered as a checker (e.g. `HealthService.AddChecker("database", &services.DatabaseChecker{})`) at startup. No direct `checkDatabase()` method; all checks go through the interface.
 
-    utils.Ok(c, response, "Service is healthy")
-}
-```
-
-**Service:** `internal/app/services/health_service.go`
-
-```go
-func (s *HealthService) CheckHealth() *dto.HealthResponse {
-    checks := make(map[string]string)
-
-    // Check database
-    dbStatus := s.checkDatabase()
-    checks["database"] = dbStatus
-
-    // Overall status
-    overallStatus := "healthy"
-    if dbStatus != "ok" {
-        overallStatus = "unhealthy"
-    }
-
-    return &dto.HealthResponse{
-        Status:    overallStatus,
-        Timestamp: time.Now(),
-        Checks:    checks,
-        Uptime:    metrics.GetUptime(),
-    }
-}
-```
+See [internal/app/services/health_service.go](../internal/app/services/health_service.go) for the full implementation.
 
 ### Adding Custom Health Checks
 
 To add additional health checks (Redis, external APIs, etc.):
 
-**1. Update `health_service.go`:**
-
-```go
-func (s *HealthService) CheckHealth() *dto.HealthResponse {
-    checks := make(map[string]string)
-
-    // Existing checks
-    checks["database"] = s.checkDatabase()
-
-    // Add new check
-    checks["redis"] = s.checkRedis()
-    checks["external_api"] = s.checkExternalAPI()
-
-    // Update overall status logic
-    overallStatus := "healthy"
-    for _, status := range checks {
-        if status != "ok" {
-            overallStatus = "unhealthy"
-            break
-        }
-    }
-
-    return &dto.HealthResponse{
-        Status:    overallStatus,
-        Timestamp: time.Now(),
-        Checks:    checks,
-        Uptime:    metrics.GetUptime(),
-    }
-}
-
-func (s *HealthService) checkRedis() string {
-    // Implement Redis ping
-    return "ok"
-}
-```
-
-**2. Add tests in `tests/unit/services/health_service_test.go`**
+1. Implement the **HealthChecker** interface (method `Check(ctx context.Context) (string, error)`).
+2. Register it with **`healthService.AddChecker("redis", yourRedisChecker)`** (or similar) where the health service is wired (e.g. in router setup).
+3. No change to `CheckHealth` logic — it already iterates over all registered checkers and marks overall status unhealthy if any return non-`"ok"`.
+4. Add unit tests in `tests/unit/services/health_service_test.go` using a mock that implements `HealthChecker`.
 
 ---
 

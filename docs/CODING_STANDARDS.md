@@ -2037,7 +2037,7 @@ func RegisterRoutes(router *gin.Engine) {
    }
 
    ❌ WRONG:
-   // No grouping - repetitive
+   // No grouping - repetitive; also prefer versioned path /api/v1/auth
    router.POST("/auth/register", authController.Register)
    router.POST("/auth/login", authController.Login)
    router.POST("/auth/refresh", authController.RefreshToken)

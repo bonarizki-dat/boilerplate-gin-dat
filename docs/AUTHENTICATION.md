@@ -17,6 +17,8 @@ This boilerplate provides a complete authentication system with the following fe
 - ✅ Password Reset Flow
 - ✅ Token Rotation (security best practice)
 
+**Sensitive data:** Logs must not contain passwords or full tokens. The application masks or omits these; see [OBSERVABILITY.md](./OBSERVABILITY.md) for logging and masking details.
+
 ---
 
 ## Authentication Flow
@@ -24,14 +26,14 @@ This boilerplate provides a complete authentication system with the following fe
 ### 1. Registration Flow
 
 ```
-User → POST /auth/register → AuthController → AuthService → Repository → Database
+User → POST /api/v1/auth/register → AuthController → AuthService → Repository → Database
                                     ↓
                     Generate Access Token & Refresh Token
                                     ↓
                               Return Response
 ```
 
-**Endpoint:** `POST /auth/register`
+**Endpoint:** `POST /api/v1/auth/register`
 
 **Request:**
 ```json
@@ -60,6 +62,10 @@ User → POST /auth/register → AuthController → AuthService → Repository �
 }
 ```
 
+**Error responses:**
+- `400 Bad Request` — Validation failed (e.g. missing/invalid name, email, or password; password &lt; 8 chars).
+- `409 Conflict` — Email already registered (e.g. `"email already exists"`).
+
 **Security Features:**
 - Password hashed with bcrypt (cost 10)
 - Email uniqueness validation
@@ -69,7 +75,7 @@ User → POST /auth/register → AuthController → AuthService → Repository �
 
 ### 2. Login Flow
 
-**Endpoint:** `POST /auth/login`
+**Endpoint:** `POST /api/v1/auth/login`
 
 **Request:**
 ```json
@@ -79,7 +85,11 @@ User → POST /auth/register → AuthController → AuthService → Repository �
 }
 ```
 
-**Response:** Same as registration response
+**Response:** Same as registration response (user, access_token, refresh_token, token_type).
+
+**Error responses:**
+- `400 Bad Request` — Validation failed (e.g. missing email or password, invalid JSON).
+- `401 Unauthorized` — Invalid credentials (generic message; does not reveal whether email exists).
 
 **Security Features:**
 - Rate limiting (100 req/s per IP)
@@ -93,7 +103,7 @@ User → POST /auth/register → AuthController → AuthService → Repository �
 
 **Purpose:** Obtain new access token without re-authentication
 
-**Endpoint:** `POST /auth/refresh`
+**Endpoint:** `POST /api/v1/auth/refresh`
 
 **Request:**
 ```json
@@ -125,13 +135,17 @@ User → POST /auth/register → AuthController → AuthService → Repository �
 - Access Token: 24 hours expiry (configurable)
 - Refresh Token: No expiry, but rotated on each use
 
+**Error responses:**
+- `400 Bad Request` — Missing or invalid refresh_token in body.
+- `401 Unauthorized` — Invalid or expired refresh token (e.g. not found or already rotated).
+
 ---
 
 ### 4. Forgot Password Flow
 
 **Purpose:** Initiate password reset for forgotten passwords
 
-**Endpoint:** `POST /auth/forgot-password`
+**Endpoint:** `POST /api/v1/auth/forgot-password`
 
 **Request:**
 ```json
@@ -159,6 +173,10 @@ User → POST /auth/register → AuthController → AuthService → Repository �
 - Rate limiting applied
 - Token stored in database with expiry timestamp
 
+**Error responses:**
+- `400 Bad Request` — Missing or invalid email.
+- `404 Not Found` or generic success — In production, a generic success message is returned regardless of whether the email exists (don't reveal if email is registered).
+
 **Production Consideration:**
 - Token should be sent via email, not in response
 - Include link to password reset page: `https://yourapp.com/reset-password?token={token}`
@@ -170,7 +188,7 @@ User → POST /auth/register → AuthController → AuthService → Repository �
 
 **Purpose:** Complete password reset using valid token
 
-**Endpoint:** `POST /auth/reset-password`
+**Endpoint:** `POST /api/v1/auth/reset-password`
 
 **Request:**
 ```json
@@ -198,6 +216,16 @@ User → POST /auth/register → AuthController → AuthService → Repository �
 **Error Responses:**
 - Invalid token: `400 Bad Request - "Invalid reset token"`
 - Expired token: `400 Bad Request - "Reset token has expired"`
+
+---
+
+### Password reset and email
+
+In production, the reset token should be sent by email instead of returned in the API response. The boilerplate supports this via a pluggable **EmailSender** interface:
+
+- **Interface:** `auth.EmailSender` with a single method `SendPasswordResetEmail(to, resetToken string) error`. Implement this in your project (e.g. SMTP, SendGrid, SES).
+- **Wire-up:** Pass your implementation into `auth.NewAuthService(userRepo, mailer)`. When `mailer` is non-nil, `ForgotPassword` sends the token via email and does not return it in the response. When `mailer` is nil (default), the token is returned in the response for development and testing.
+- **Default:** The boilerplate wires `NewAuthService(userRepo, nil)`, so by default the token is returned in the response. To enable production-style behaviour, implement `EmailSender` and inject it when constructing the auth service in your routes.
 
 ---
 
@@ -435,11 +463,11 @@ New fields added to `users` table:
 
 | Endpoint | Method | Auth Required | Description |
 |----------|--------|---------------|-------------|
-| `/auth/register` | POST | No | Register new user |
-| `/auth/login` | POST | No | Authenticate user |
-| `/auth/refresh` | POST | No | Refresh access token |
-| `/auth/forgot-password` | POST | No | Request password reset |
-| `/auth/reset-password` | POST | No | Complete password reset |
+| `/api/v1/auth/register` | POST | No | Register new user |
+| `/api/v1/auth/login` | POST | No | Authenticate user |
+| `/api/v1/auth/refresh` | POST | No | Refresh access token |
+| `/api/v1/auth/forgot-password` | POST | No | Request password reset |
+| `/api/v1/auth/reset-password` | POST | No | Complete password reset |
 
 ### Rate Limiting
 

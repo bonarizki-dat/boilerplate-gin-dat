@@ -28,6 +28,11 @@ func Get() *Configuration {
 	return appConfig
 }
 
+// SetForTest sets the global configuration. For testing only; allows unit tests to run without .env.
+func SetForTest(c *Configuration) {
+	appConfig = c
+}
+
 // SetupConfig loads and validates configuration from .env file
 // and stores it in the global config (accessible via Get()).
 func SetupConfig() error {
@@ -60,26 +65,56 @@ func SetupConfig() error {
 	if burst <= 0 {
 		burst = 200
 	}
+	timezone := viper.GetString("SERVER_TIMEZONE")
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	requestTimeout := viper.GetInt("REQUEST_TIMEOUT_SECONDS")
+	if requestTimeout <= 0 {
+		requestTimeout = 30
+	}
+	shutdownTimeout := viper.GetInt("SERVER_SHUTDOWN_TIMEOUT")
+	if shutdownTimeout <= 0 {
+		shutdownTimeout = 10
+	}
+	masterSsl := viper.GetString("MASTER_SSL_MODE")
+	if masterSsl == "" {
+		masterSsl = "disable"
+	}
+	replicaSsl := viper.GetString("REPLICA_SSL_MODE")
+	if replicaSsl == "" {
+		replicaSsl = masterSsl
+	}
 
 	appConfig = &Configuration{
 		Server: ServerConfiguration{
-			Host:             viper.GetString("SERVER_HOST"),
-			Port:             viper.GetString("SERVER_PORT"),
-			Secret:           viper.GetString("SECRET"),
-			JWTSecret:        viper.GetString("JWT_SECRET"),
-			Debug:            debug,
-			AllowedHosts:     allowedHosts,
-			RateLimitRPS:     rps,
-			RateLimitBurst:   burst,
-			RateLimitUseUser: viper.GetBool("RATE_LIMIT_USE_USER"),
+			Host:                   viper.GetString("SERVER_HOST"),
+			Port:                   viper.GetString("SERVER_PORT"),
+			Secret:                 viper.GetString("SECRET"),
+			JWTSecret:              viper.GetString("JWT_SECRET"),
+			Debug:                  debug,
+			AllowedHosts:           allowedHosts,
+			Timezone:               timezone,
+			RequestTimeoutSeconds:  requestTimeout,
+			ShutdownTimeoutSeconds: shutdownTimeout,
+			RateLimitRPS:           rps,
+			RateLimitBurst:         burst,
+			RateLimitUseUser:       viper.GetBool("RATE_LIMIT_USE_USER"),
 		},
 		Database: DatabaseConfiguration{
-			Dbname:   viper.GetString("MASTER_DB_NAME"),
-			Username: viper.GetString("MASTER_DB_USER"),
-			Password: viper.GetString("MASTER_DB_PASSWORD"),
-			Host:     viper.GetString("MASTER_DB_HOST"),
-			Port:     viper.GetString("MASTER_DB_PORT"),
-			LogMode:  viper.GetBool("MASTER_DB_LOG_MODE"),
+			Dbname:          viper.GetString("MASTER_DB_NAME"),
+			Username:        viper.GetString("MASTER_DB_USER"),
+			Password:        viper.GetString("MASTER_DB_PASSWORD"),
+			Host:            viper.GetString("MASTER_DB_HOST"),
+			Port:            viper.GetString("MASTER_DB_PORT"),
+			LogMode:         viper.GetBool("MASTER_DB_LOG_MODE"),
+			SslMode:         masterSsl,
+			ReplicaDbname:   viper.GetString("REPLICA_DB_NAME"),
+			ReplicaUsername: viper.GetString("REPLICA_DB_USER"),
+			ReplicaPassword: viper.GetString("REPLICA_DB_PASSWORD"),
+			ReplicaHost:     viper.GetString("REPLICA_DB_HOST"),
+			ReplicaPort:     viper.GetString("REPLICA_DB_PORT"),
+			ReplicaSslMode:  replicaSsl,
 		},
 	}
 	if appConfig.Server.Port == "" {
@@ -87,6 +122,15 @@ func SetupConfig() error {
 	}
 	if appConfig.Server.Host == "" {
 		appConfig.Server.Host = "0.0.0.0"
+	}
+	// Replica defaults to master when not set
+	if appConfig.Database.ReplicaDbname == "" {
+		appConfig.Database.ReplicaDbname = appConfig.Database.Dbname
+		appConfig.Database.ReplicaUsername = appConfig.Database.Username
+		appConfig.Database.ReplicaPassword = appConfig.Database.Password
+		appConfig.Database.ReplicaHost = appConfig.Database.Host
+		appConfig.Database.ReplicaPort = appConfig.Database.Port
+		appConfig.Database.ReplicaSslMode = appConfig.Database.SslMode
 	}
 
 	logger.Infof("Configuration loaded and validated successfully")

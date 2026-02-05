@@ -14,22 +14,22 @@ import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/metrics"
-
-	"github.com/spf13/viper"
 )
 
 func main() {
-	// Set timezone (must be valid IANA name, e.g. UTC, Asia/Jakarta)
-	viper.SetDefault("SERVER_TIMEZONE", "UTC")
-	loc, err := time.LoadLocation(viper.GetString("SERVER_TIMEZONE"))
-	if err != nil {
-		logger.Fatalf("invalid SERVER_TIMEZONE %q: %v", viper.GetString("SERVER_TIMEZONE"), err)
-	}
-	time.Local = loc
-
 	if err := config.SetupConfig(); err != nil {
 		logger.Fatalf("config SetupConfig() error: %s", err)
 	}
+
+	cfg := config.Get()
+	if cfg == nil {
+		logger.Fatalf("config not loaded")
+	}
+	loc, err := time.LoadLocation(cfg.Server.Timezone)
+	if err != nil {
+		logger.Fatalf("invalid SERVER_TIMEZONE %q: %v", cfg.Server.Timezone, err)
+	}
+	time.Local = loc
 
 	// Initialize metrics tracking
 	metrics.Init()
@@ -46,10 +46,7 @@ func main() {
 	router := routers.SetupRoute()
 
 	addr := config.ServerConfig()
-	requestTimeout := 30 * time.Second
-	if v := viper.GetInt("REQUEST_TIMEOUT_SECONDS"); v > 0 {
-		requestTimeout = time.Duration(v) * time.Second
-	}
+	requestTimeout := time.Duration(cfg.Server.RequestTimeoutSeconds) * time.Second
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      router,
@@ -69,10 +66,7 @@ func main() {
 
 	logger.Infof("shutdown signal received, shutting down gracefully")
 
-	shutdownTimeout := 10 * time.Second
-	if v := viper.GetInt("SERVER_SHUTDOWN_TIMEOUT"); v > 0 {
-		shutdownTimeout = time.Duration(v) * time.Second
-	}
+	shutdownTimeout := time.Duration(cfg.Server.ShutdownTimeoutSeconds) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 

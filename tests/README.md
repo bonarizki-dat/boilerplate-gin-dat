@@ -2,6 +2,23 @@
 
 This directory contains all test files following the project's testing standards.
 
+## Running tests and coverage
+
+From the project root:
+
+- **Run unit tests:** `make test` or `go test ./tests/unit/... ./internal/... ./pkg/...`
+- **Run with coverage:** `make test-coverage` or:
+  ```bash
+  go test -coverprofile=coverage.out ./tests/unit/... ./internal/... ./pkg/...
+  go tool cover -func=coverage.out
+  ```
+- **Coverage gate (70%):** `make test-coverage-check` runs tests with coverage and fails if overall coverage is below 70%. The project standard is minimum 70% for the services layer (see docs/CODING_STANDARDS.md).
+- **HTML coverage report:** `go tool cover -html=coverage.out` (opens in browser)
+
+Mocks live under `tests/mocks/` (e.g. `MockUserRepository`, `MockAuthServicer`) for use in unit tests.
+
+**Service coverage note:** `ExampleService` uses package-level repository calls (`repositories.Get`, `repositories.GetDataDatatables`) and is not unit-tested in isolation; it is covered by integration tests when the database is available.
+
 ## Directory Structure
 
 ```

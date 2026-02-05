@@ -6,8 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterExampleRoutes registers example/datatables public routes.
-func RegisterExampleRoutes(router *gin.Engine, exampleService *services.ExampleService) {
+// RegisterExampleRoutes registers example/datatables routes under the given group (e.g. /api/v1).
+// Full path will be groupPrefix/datatables.
+func RegisterExampleRoutes(group *gin.RouterGroup, exampleService *services.ExampleService) {
 	exampleController := controllers.NewExampleController(exampleService)
-	router.GET("/datatables", exampleController.GetDataDatatables)
+	group.GET("/datatables", exampleController.GetDataDatatables)
 }

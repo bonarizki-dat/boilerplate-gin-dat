@@ -30,11 +30,12 @@ var (
 // AuthService handles authentication-related business logic
 type AuthService struct {
 	userRepo repositories.UserRepository
+	mailer   EmailSender // optional; when set, ForgotPassword sends token via email instead of returning it
 }
 
-// NewAuthService creates a new AuthService instance with the given user repository.
-func NewAuthService(userRepo repositories.UserRepository) *AuthService {
-	return &AuthService{userRepo: userRepo}
+// NewAuthService creates a new AuthService instance. mailer may be nil (token returned in response for dev/testing).
+func NewAuthService(userRepo repositories.UserRepository, mailer EmailSender) *AuthService {
+	return &AuthService{userRepo: userRepo, mailer: mailer}
 }
 
 // Register creates a new user account with validation and password hashing.

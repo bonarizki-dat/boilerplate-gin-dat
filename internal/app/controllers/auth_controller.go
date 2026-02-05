@@ -6,7 +6,6 @@ import (
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
-	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/types"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/utils"
@@ -39,11 +38,11 @@ func authErrToAPIError(err error) *types.APIError {
 
 // AuthController handles authentication-related HTTP requests
 type AuthController struct {
-	service *auth.AuthService
+	service auth.AuthServicer
 }
 
 // NewAuthController creates a new AuthController instance
-func NewAuthController(service *auth.AuthService) *AuthController {
+func NewAuthController(service auth.AuthServicer) *AuthController {
 	return &AuthController{
 		service: service,
 	}
@@ -186,19 +185,12 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	if config.IsProduction() {
-		logger.LogFinish(ctx, "AuthController.ForgotPassword", nil, start)
-		utils.Ok(c, map[string]string{
-			"message": "Password reset instructions sent to email",
-		}, "Password reset initiated")
-		return
-	}
-
 	logger.LogFinish(ctx, "AuthController.ForgotPassword", nil, start)
-	utils.Ok(c, map[string]string{
-		"message": "Password reset instructions sent to email",
-		"token":   resetToken,
-	}, "Password reset initiated")
+	data := map[string]interface{}{"message": "If the email exists, a password reset link has been sent"}
+	if resetToken != "" {
+		data["token"] = resetToken
+	}
+	utils.Ok(c, data, "Password reset initiated")
 }
 
 // ResetPassword handles password reset endpoint.

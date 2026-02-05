@@ -7,11 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterAuthRoutes registers authentication routes (register, login, refresh, forgot-password, reset-password).
-// Applies rate limiting via RateLimitMiddleware; limits read from RATE_LIMIT_RPS / RATE_LIMIT_BURST in middleware.
-func RegisterAuthRoutes(router *gin.Engine, authService *auth.AuthService) {
+// RegisterAuthRoutes registers authentication routes under the given group (e.g. /api/v1).
+// Full path will be groupPrefix/auth/... Applies rate limiting via RateLimitMiddleware.
+func RegisterAuthRoutes(group *gin.RouterGroup, authService *auth.AuthService) {
 	authController := controllers.NewAuthController(authService)
-	authRoutes := router.Group("/auth")
+	authRoutes := group.Group("/auth")
 	authRoutes.Use(middlewares.RateLimitMiddleware())
 	{
 		authRoutes.POST("/register", authController.Register)

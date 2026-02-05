@@ -2,6 +2,7 @@ package controllers_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/tests/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,18 +24,34 @@ func setupTestRouter() *gin.Engine {
 	return router
 }
 
-// setupAuthController creates an AuthController for testing (uses real UserRepository; for isolated tests use a mock).
+// setupAuthController creates an AuthController with real AuthService (for integration-style tests).
 func setupAuthController() *controllers.AuthController {
-	authService := auth.NewAuthService(repositories.NewUserRepository())
+	authService := auth.NewAuthService(repositories.NewUserRepository(), nil)
 	return controllers.NewAuthController(authService)
 }
 
-// TestRegisterEndpoint tests the Register HTTP handler
+// setupAuthControllerWithMock creates an AuthController with MockAuthServicer for unit tests.
+func setupAuthControllerWithMock(mock *mocks.MockAuthServicer) *controllers.AuthController {
+	return controllers.NewAuthController(mock)
+}
+
+// TestRegisterEndpoint tests the Register HTTP handler with mocked AuthServicer.
 func TestRegisterEndpoint(t *testing.T) {
-	// NOTE: These tests require proper mocking or database setup
-	// For production code, mock the AuthService dependency
-	// See TESTING.md for mocking guidelines
-	t.Skip("Skipping: Requires mocked AuthService or test database setup")
+	mock := &mocks.MockAuthServicer{
+		RegisterFunc: func(_ context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
+			// Success for valid-looking request
+			if req.Name != "" && req.Email != "" && len(req.Password) >= 8 {
+				return &dto.AuthResponse{
+					User:         dto.UserResponse{ID: 1, Name: req.Name, Email: req.Email},
+					AccessToken:  "mock-token",
+					RefreshToken: "mock-refresh",
+					TokenType:    "Bearer",
+				}, nil
+			}
+			return nil, auth.ErrEmailAlreadyExists
+		},
+	}
+	ctrl := setupAuthControllerWithMock(mock)
 
 	tests := []struct {
 		name           string
@@ -54,7 +72,6 @@ func TestRegisterEndpoint(t *testing.T) {
 			name: "Missing required fields",
 			requestBody: map[string]interface{}{
 				"name": "John Doe",
-				// Missing email and password
 			},
 			expectedStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
@@ -91,10 +108,8 @@ func TestRegisterEndpoint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
 			router := setupTestRouter()
-			authController := setupAuthController()
-			router.POST("/auth/register", authController.Register)
+			router.POST("/auth/register", ctrl.Register)
 
 			// Create request body
 			var body []byte
@@ -104,18 +119,12 @@ func TestRegisterEndpoint(t *testing.T) {
 				body, _ = json.Marshal(tt.requestBody)
 			}
 
-			// Create request
 			req, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
-
-			// Record response
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			t.Logf("Response status: %d, Expected: %d", w.Code, tt.expectedStatus)
-			t.Logf("Response body: %s", w.Body.String())
-
-			// Run additional checks if provided
+			assert.Equal(t, tt.expectedStatus, w.Code, "response status")
 			if tt.checkResponse != nil {
 				tt.checkResponse(t, w)
 			}
@@ -123,12 +132,22 @@ func TestRegisterEndpoint(t *testing.T) {
 	}
 }
 
-// TestLoginEndpoint tests the Login HTTP handler
+// TestLoginEndpoint tests the Login HTTP handler with mocked AuthService
 func TestLoginEndpoint(t *testing.T) {
-	// NOTE: These tests require proper mocking or database setup
-	// For production code, mock the AuthService dependency
-	// See TESTING.md for mocking guidelines
-	t.Skip("Skipping: Requires mocked AuthService or test database setup")
+	mock := &mocks.MockAuthServicer{
+		LoginFunc: func(_ context.Context, req *dto.LoginRequest) (*dto.AuthResponse, error) {
+			if req.Email != "" && req.Password != "" {
+				return &dto.AuthResponse{
+					User:         dto.UserResponse{ID: 1, Name: "Test", Email: req.Email},
+					AccessToken:  "mock-token",
+					RefreshToken: "mock-refresh",
+					TokenType:    "Bearer",
+				}, nil
+			}
+			return nil, auth.ErrInvalidCredentials
+		},
+	}
+	ctrl := setupAuthControllerWithMock(mock)
 
 	tests := []struct {
 		name           string
@@ -172,12 +191,9 @@ func TestLoginEndpoint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
 			router := setupTestRouter()
-			authController := setupAuthController()
-			router.POST("/auth/login", authController.Login)
+			router.POST("/auth/login", ctrl.Login)
 
-			// Create request body
 			var body []byte
 			if str, ok := tt.requestBody.(string); ok {
 				body = []byte(str)
@@ -185,18 +201,12 @@ func TestLoginEndpoint(t *testing.T) {
 				body, _ = json.Marshal(tt.requestBody)
 			}
 
-			// Create request
 			req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
-
-			// Record response
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			t.Logf("Response status: %d, Expected: %d", w.Code, tt.expectedStatus)
-			t.Logf("Response body: %s", w.Body.String())
-
-			// Run additional checks if provided
+			assert.Equal(t, tt.expectedStatus, w.Code, "response status")
 			if tt.checkResponse != nil {
 				tt.checkResponse(t, w)
 			}
@@ -204,16 +214,22 @@ func TestLoginEndpoint(t *testing.T) {
 	}
 }
 
-// TestRegisterResponseStructure tests the response structure
+// TestRegisterResponseStructure tests the response structure with mocked AuthService
 func TestRegisterResponseStructure(t *testing.T) {
-	// This test verifies that successful registration returns correct structure
-	// Note: This test requires database setup or mocking
-
-	t.Skip("Skipping integration test - requires database setup")
+	mock := &mocks.MockAuthServicer{
+		RegisterFunc: func(_ context.Context, _ *dto.RegisterRequest) (*dto.AuthResponse, error) {
+			return &dto.AuthResponse{
+				User:         dto.UserResponse{ID: 1, Name: "Test User", Email: "testuser@example.com"},
+				AccessToken:  "mock-access-token",
+				RefreshToken: "mock-refresh-token",
+				TokenType:    "Bearer",
+			}, nil
+		},
+	}
+	ctrl := setupAuthControllerWithMock(mock)
 
 	router := setupTestRouter()
-	authController := setupAuthController()
-	router.POST("/auth/register", authController.Register)
+	router.POST("/auth/register", ctrl.Register)
 
 	requestBody := dto.RegisterRequest{
 		Name:     "Test User",

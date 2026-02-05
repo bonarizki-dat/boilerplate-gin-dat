@@ -2,29 +2,35 @@ package services_test
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/dto"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/services/auth"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/models"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/domain/repositories"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/tests/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
-// mockUserRepo is a test double for UserRepository (no DB).
-type mockUserRepo struct{}
+const testJWTSecret = "test-jwt-secret-at-least-32-characters-long!!"
 
-func (*mockUserRepo) GetUserByEmail(string) (*models.User, error)        { return nil, nil }
-func (*mockUserRepo) CreateUser(*models.User) error                      { return nil }
-func (*mockUserRepo) UpdateUser(*models.User) error                      { return nil }
-func (*mockUserRepo) GetUserByRefreshToken(string) (*models.User, error) { return nil, nil }
-func (*mockUserRepo) GetUserByPasswordResetToken(string) (*models.User, error) {
-	return nil, nil
+func setTestConfig(t *testing.T) {
+	t.Helper()
+	cfg := &config.Configuration{}
+	cfg.Server.JWTSecret = testJWTSecret
+	cfg.Server.Secret = "test-secret-at-least-32-characters-long!!!!"
+	config.SetForTest(cfg)
 }
 
 func newAuthServiceWithMockRepo() *auth.AuthService {
-	var repo repositories.UserRepository = &mockUserRepo{}
-	return auth.NewAuthService(repo)
+	return auth.NewAuthService(mocks.NewMockUserRepository(), nil)
+}
+
+func newAuthServiceWithRepo(repo repositories.UserRepository) *auth.AuthService {
+	return auth.NewAuthService(repo, nil)
 }
 
 // NOTE: These tests demonstrate testing patterns for services.
@@ -36,10 +42,7 @@ func newAuthServiceWithMockRepo() *auth.AuthService {
 
 // TestValidateToken tests JWT token validation
 func TestValidateToken(t *testing.T) {
-	// NOTE: This test requires SECRET environment variable to be set
-	// In production, use test configuration with known secrets
-	t.Skip("Skipping: Requires SECRET configuration and test setup")
-
+	setTestConfig(t)
 	service := newAuthServiceWithMockRepo()
 
 	tests := []struct {
@@ -167,16 +170,13 @@ func TestPasswordComplexity(t *testing.T) {
 	}
 }
 
-// TestRefreshToken tests refresh token functionality
+// TestRefreshToken tests refresh token functionality with mocked repository
 func TestRefreshToken(t *testing.T) {
-	// NOTE: This test requires database mocking and test setup
-	// In production, you should:
-	// 1. Mock repository.GetUserByRefreshToken
-	// 2. Mock repository.UpdateUser
-	// 3. Test token rotation (old token invalidated, new token issued)
-	t.Skip("Skipping: Requires mocked repository and test database setup")
-
-	service := newAuthServiceWithMockRepo()
+	setTestConfig(t)
+	mockRepo := mocks.NewMockUserRepository()
+	user := &models.User{ID: 1, Name: "Test", Email: "test@example.com"}
+	mockRepo.SetUserByRefreshToken("valid-token-here", user)
+	service := auth.NewAuthService(mockRepo, nil)
 
 	tests := []struct {
 		name          string
@@ -226,17 +226,12 @@ func TestRefreshToken(t *testing.T) {
 	}
 }
 
-// TestForgotPassword tests forgot password functionality
+// TestForgotPassword tests forgot password functionality using MockUserRepository.
 func TestForgotPassword(t *testing.T) {
-	// NOTE: This test requires database mocking and test setup
-	// In production, you should:
-	// 1. Mock repository.GetUserByEmail
-	// 2. Mock repository.UpdateUser
-	// 3. Test token generation and expiry
-	// 4. Test email not found scenario (security - don't reveal user existence)
-	t.Skip("Skipping: Requires mocked repository and test database setup")
-
-	service := newAuthServiceWithMockRepo()
+	mockRepo := mocks.NewMockUserRepository()
+	// Seed user for "Valid email - user exists" case
+	mockRepo.AddUserByEmail("user@example.com", &models.User{ID: 1, Email: "user@example.com", Name: "User"})
+	service := newAuthServiceWithRepo(mockRepo)
 
 	tests := []struct {
 		name        string
@@ -257,9 +252,9 @@ func TestForgotPassword(t *testing.T) {
 			expectToken: false,
 		},
 		{
-			name:        "Invalid email format",
+			name:        "Invalid email format - no such user",
 			email:       "invalid-email",
-			expectError: nil, // Validation happens in controller
+			expectError: auth.ErrUserNotFound,
 			expectToken: false,
 		},
 	}
@@ -274,12 +269,12 @@ func TestForgotPassword(t *testing.T) {
 
 			if tt.expectError != nil {
 				assert.Error(t, err)
+				assert.True(t, errors.Is(err, tt.expectError), "expected %v", tt.expectError)
 				assert.Empty(t, token)
 			} else {
 				assert.NoError(t, err)
 				if tt.expectToken {
 					assert.NotEmpty(t, token)
-					// Token should be 64 hex characters
 					assert.Len(t, token, 64)
 				}
 			}
@@ -287,18 +282,26 @@ func TestForgotPassword(t *testing.T) {
 	}
 }
 
-// TestResetPassword tests password reset functionality
+// TestResetPassword tests password reset functionality using MockUserRepository.
 func TestResetPassword(t *testing.T) {
-	// NOTE: This test requires database mocking and test setup
-	// In production, you should:
-	// 1. Mock repository.GetUserByPasswordResetToken
-	// 2. Mock repository.UpdateUser
-	// 3. Test token expiry validation
-	// 4. Test password hashing
-	// 5. Test token cleanup after successful reset
-	t.Skip("Skipping: Requires mocked repository and test database setup")
-
-	service := newAuthServiceWithMockRepo()
+	futureExpiry := time.Now().Add(15 * time.Minute)
+	pastExpiry := time.Now().Add(-1 * time.Hour)
+	validUser := &models.User{
+		ID:                  1,
+		Email:               "user@example.com",
+		PasswordResetToken:  "valid-reset-token",
+		PasswordResetExpiry: &futureExpiry,
+	}
+	expiredUser := &models.User{
+		ID:                  2,
+		Email:               "expired@example.com",
+		PasswordResetToken:  "expired-token",
+		PasswordResetExpiry: &pastExpiry,
+	}
+	mockRepo := mocks.NewMockUserRepository()
+	mockRepo.SetUserByPasswordResetToken("valid-reset-token", validUser)
+	mockRepo.SetUserByPasswordResetToken("expired-token", expiredUser)
+	service := newAuthServiceWithRepo(mockRepo)
 
 	tests := []struct {
 		name        string
@@ -343,6 +346,7 @@ func TestResetPassword(t *testing.T) {
 
 			if tt.expectError != nil {
 				assert.Error(t, err)
+				assert.True(t, errors.Is(err, tt.expectError), "expected %v", tt.expectError)
 			} else {
 				assert.NoError(t, err)
 			}

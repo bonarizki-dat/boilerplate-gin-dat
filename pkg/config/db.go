@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-
-	"github.com/spf13/viper"
 )
 
 type DatabaseConfiguration struct {
@@ -14,50 +12,31 @@ type DatabaseConfiguration struct {
 	Host     string
 	Port     string
 	LogMode  bool
+	SslMode  string // master SSL mode, e.g. disable, require
+	// Replica (read-only); if empty, master values are used
+	ReplicaDbname   string
+	ReplicaUsername string
+	ReplicaPassword string
+	ReplicaHost     string
+	ReplicaPort     string
+	ReplicaSslMode  string
 }
 
-func DbConfiguration() (string, string) {
-	var masterDBName, masterDBUser, masterDBPassword, masterDBHost, masterDBPort, masterDBSslMode string
-	var replicaDBName, replicaDBUser, replicaDBPassword, replicaDBHost, replicaDBPort, replicaDBSslMode string
-	if c := Get(); c != nil {
-		masterDBName, masterDBUser, masterDBPassword = c.Database.Dbname, c.Database.Username, c.Database.Password
-		masterDBHost, masterDBPort = c.Database.Host, c.Database.Port
-		masterDBSslMode = viper.GetString("MASTER_SSL_MODE")
-		replicaDBName = viper.GetString("REPLICA_DB_NAME")
-		replicaDBUser = viper.GetString("REPLICA_DB_USER")
-		replicaDBPassword = viper.GetString("REPLICA_DB_PASSWORD")
-		replicaDBHost = viper.GetString("REPLICA_DB_HOST")
-		replicaDBPort = viper.GetString("REPLICA_DB_PORT")
-		replicaDBSslMode = viper.GetString("REPLICA_SSL_MODE")
-	} else {
-		masterDBName = viper.GetString("MASTER_DB_NAME")
-		masterDBUser = viper.GetString("MASTER_DB_USER")
-		masterDBPassword = viper.GetString("MASTER_DB_PASSWORD")
-		masterDBHost = viper.GetString("MASTER_DB_HOST")
-		masterDBPort = viper.GetString("MASTER_DB_PORT")
-		masterDBSslMode = viper.GetString("MASTER_SSL_MODE")
-		replicaDBName = viper.GetString("REPLICA_DB_NAME")
-		replicaDBUser = viper.GetString("REPLICA_DB_USER")
-		replicaDBPassword = viper.GetString("REPLICA_DB_PASSWORD")
-		replicaDBHost = viper.GetString("REPLICA_DB_HOST")
-		replicaDBPort = viper.GetString("REPLICA_DB_PORT")
-		replicaDBSslMode = viper.GetString("REPLICA_SSL_MODE")
+// DbConfiguration returns master and replica DSN from loaded config.
+// Call after SetupConfig(). Returns empty strings if config not loaded.
+func DbConfiguration() (masterDSN, replicaDSN string) {
+	c := Get()
+	if c == nil {
+		return "", ""
 	}
-	if replicaDBName == "" {
-		replicaDBName = masterDBName
-		replicaDBUser = masterDBUser
-		replicaDBPassword = masterDBPassword
-		replicaDBHost = masterDBHost
-		replicaDBPort = masterDBPort
-		replicaDBSslMode = masterDBSslMode
-	}
-	masterDBDSN := fmt.Sprintf(
+	d := &c.Database
+	masterDSN = fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		masterDBHost, masterDBUser, masterDBPassword, masterDBName, masterDBPort, masterDBSslMode,
+		d.Host, d.Username, d.Password, d.Dbname, d.Port, d.SslMode,
 	)
-	replicaDBDSN := fmt.Sprintf(
+	replicaDSN = fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		replicaDBHost, replicaDBUser, replicaDBPassword, replicaDBName, replicaDBPort, replicaDBSslMode,
+		d.ReplicaHost, d.ReplicaUsername, d.ReplicaPassword, d.ReplicaDbname, d.ReplicaPort, d.ReplicaSslMode,
 	)
-	return masterDBDSN, replicaDBDSN
+	return masterDSN, replicaDSN
 }

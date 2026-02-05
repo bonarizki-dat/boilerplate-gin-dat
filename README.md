@@ -99,6 +99,22 @@ go run main.go
 # ✅ Visit: http://localhost:8000/health
 ```
 
+**Run tests:**
+```bash
+make test              # Unit tests
+make test-coverage     # Tests with coverage report
+```
+See [tests/README.md](tests/README.md) for details.
+
+**Important environment variables** (set in `.env` after copying from `.env.example`):
+
+| Variable | Purpose |
+|----------|---------|
+| `SERVER_PORT` | HTTP port (default `8000`) |
+| `JWT_SECRET`, `SECRET` | Auth and app secrets (min 32 chars; change in production) |
+| `MASTER_DB_*` | PostgreSQL connection for main DB |
+| `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST` | Global API rate limit (defaults 100, 200) |
+
 **Using Docker:**
 ```bash
 # Development with live reload
@@ -111,7 +127,7 @@ make production
 **First API Call:**
 ```bash
 # Register a user
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -282,7 +298,7 @@ project/
 #### Register a New User
 
 ```bash
-POST /auth/register
+POST /api/v1/auth/register
 Content-Type: application/json
 
 {
@@ -312,7 +328,7 @@ Content-Type: application/json
 #### Login
 
 ```bash
-POST /auth/login
+POST /api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -364,7 +380,7 @@ Content-Type: application/json
 #### Forgot Password
 
 ```bash
-POST /auth/forgot-password
+POST /api/v1/auth/forgot-password
 Content-Type: application/json
 
 {
@@ -388,7 +404,7 @@ Content-Type: application/json
 #### Reset Password
 
 ```bash
-POST /auth/reset-password
+POST /api/v1/auth/reset-password
 Content-Type: application/json
 
 {
@@ -500,7 +516,7 @@ import (
 
 func TestAuthService_ValidateToken(t *testing.T) {
     userRepo := repositories.NewUserRepository()
-    authService := auth.NewAuthService(userRepo)
+    authService := auth.NewAuthService(userRepo, nil)
 
     tests := []struct {
         name    string

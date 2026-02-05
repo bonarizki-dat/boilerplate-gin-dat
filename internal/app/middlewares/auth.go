@@ -14,7 +14,7 @@ import (
 // Expects Authorization header with format: "Bearer <token>"
 // On success, sets "user_id" in gin.Context
 // On failure, returns 401 Unauthorized
-func AuthMiddleware(authService *auth.AuthService) gin.HandlerFunc {
+func AuthMiddleware(authService auth.AuthServicer) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// Get Authorization header
 		authHeader := ctx.GetHeader("Authorization")

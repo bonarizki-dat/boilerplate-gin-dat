@@ -109,8 +109,15 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 
 	logger.Infof("password reset token generated for user: %s", user.Email)
 
-	// TODO: In production, send this token via email instead of returning it
-	// For now, we return it for testing purposes
+	if s.mailer != nil {
+		if err := s.mailer.SendPasswordResetEmail(user.Email, resetToken); err != nil {
+			logger.Errorf("failed to send password reset email: %v", err)
+			logger.LogFinish(ctx, "AuthService.ForgotPassword", err, start)
+			return "", fmt.Errorf("failed to send reset email: %w", err)
+		}
+		logger.LogFinish(ctx, "AuthService.ForgotPassword", nil, start)
+		return "", nil
+	}
 	logger.LogFinish(ctx, "AuthService.ForgotPassword", nil, start)
 	return resetToken, nil
 }

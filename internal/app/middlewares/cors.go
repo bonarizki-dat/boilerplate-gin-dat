@@ -1,8 +1,7 @@
 package middlewares
 
 import (
-	"log"
-
+	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,7 +16,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		ctx.Writer.Header().Set("Cache-Control", "no-cache")
 
 		if ctx.Request.Method == "OPTIONS" {
-			log.Println("OPTIONS")
+			logger.Debugf("CORS preflight OPTIONS")
 			ctx.AbortWithStatus(200)
 		} else {
 			ctx.Next()
