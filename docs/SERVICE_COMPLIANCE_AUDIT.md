@@ -1,96 +1,96 @@
-# Audit Kepatuhan Service terhadap Standar .docs
+# Service Compliance Audit Against .docs Standards
 
-**Tanggal audit:** 2026-02-03  
-**Sumber standar:** `00_AI_CRITICAL_RULES.md`, `AI_QUICK_REFERENCE.md`, `AI_AGENT_RULES.md`, `CODING_STANDARDS.md`, `DESIGN_PATTERNS.md`
-
----
-
-## Ringkasan standar yang berlaku untuk service
-
-| Sumber | Aturan |
-|--------|--------|
-| **00_AI TIER 0** | Service MUST struct-based dengan method; DI via constructor (`New*`). |
-| **00_AI TIER 1** | File max 300 baris; function max 100 baris. |
-| **AI_AGENT_RULES** | Doc untuk semua exported; error wajib di-handle (no `_, _`); test di `tests/`; coverage service min 70%. |
-| **CODING_STANDARDS §3** | Service: semua business logic; orchestrate repository; validasi bisnis; transform data. Service MUST NOT: handle HTTP (`gin.Context`), import controller, exceed 400 lines/file. |
-| **DESIGN_PATTERNS** | Service MUST NOT: handle HTTP (`gin.Context`), akses DB langsung (pakai repository), import controller, return HTTP response. Max 100 baris/function; max 400 baris/file (konservatif: 300 sesuai aturan global). |
-
-**Ukuran file:** Batas ketat project = **300 baris** (AI_AGENT_RULES, 5 Commandments). DESIGN_PATTERNS menyebut 400 untuk service file; untuk konsistensi kita pakai **300 baris** sebagai target.
-
-**Subfolder saat split:** Jika satu service dipecah menjadi lebih dari satu file, semua file fitur tersebut **MUST** dipindah ke subfolder (mis. `services/auth/`) dengan package nama folder (mis. `package auth`). Lihat CODING_STANDARDS §1.1 (File Size Limits).
+**Audit date:** 2026-02-03  
+**Standards sources:** `00_AI_CRITICAL_RULES.md`, `AI_QUICK_REFERENCE.md`, `AI_AGENT_RULES.md`, `CODING_STANDARDS.md`, `DESIGN_PATTERNS.md`
 
 ---
 
-## Status per service
+## Summary of Standards Applicable to Services
 
-### 1. AuthService (`internal/app/services/auth_service.go`)
+| Source | Rule |
+|--------|------|
+| **00_AI TIER 0** | Service MUST be struct-based with methods; DI via constructor (`New*`). |
+| **00_AI TIER 1** | File max 300 lines; function max 100 lines. |
+| **AI_AGENT_RULES** | Document all exported symbols; errors must be handled (no `_, _`); tests in `tests/`; minimum 70% coverage for services. |
+| **CODING_STANDARDS §3** | Service: all business logic; orchestrate repository; business validation; data transform. Service MUST NOT: handle HTTP (`gin.Context`), import controller, exceed 400 lines per file. |
+| **DESIGN_PATTERNS** | Service MUST NOT: handle HTTP (`gin.Context`), access DB directly (use repository), import controller, return HTTP response. Max 100 lines per function; max 400 lines per file (conservative: 300 per global rule). |
 
-| Standar | Status | Catatan |
-|---------|--------|--------|
-| Struct-based + DI | ✅ | `AuthService` struct, `NewAuthService()` |
-| Tidak pakai `gin.Context` | ✅ | Hanya `context.Context` + DTO |
-| Tidak akses DB langsung | ✅ | Semua lewat `repositories.*` |
-| Error di-handle, wrap dengan context | ✅ | `fmt.Errorf("...: %w", err)`, `logger.Errorf` |
-| Exported didokumentasi | ✅ | Godoc untuk struct, New*, dan semua method publik |
-| Ukuran file | ✅ | Setelah perbaikan: `auth_service.go` ~285 baris, `auth_service_tokens.go` ~195 baris (keduanya ≤300). |
-| Ukuran function | ✅ | Tidak ada function >100 baris |
+**File size:** Strict project limit = **300 lines** (AI_AGENT_RULES, 5 Commandments). DESIGN_PATTERNS mentions 400 for service files; for consistency we use **300 lines** as the target.
 
-**Perbaikan selesai:** AuthService dipisah menjadi dua file dan **dipindah ke subfolder** `services/auth/`: `auth_service.go` (Register, Login, ValidateToken + helpers) dan `auth_service_tokens.go` (RefreshToken, ForgotPassword, ResetPassword + generatePasswordResetToken). Package = `auth`; pemanggil memakai `auth.NewAuthService()` dan `*auth.AuthService`.
+**Subfolder when split:** If a single service is split into more than one file, all files for that feature **MUST** be moved to a subfolder (e.g. `services/auth/`) with package name = folder (e.g. `package auth`). See CODING_STANDARDS §1.1 (File Size Limits).
+
+---
+
+## Status per Service
+
+### 1. AuthService (`internal/app/services/auth/`)
+
+| Standard | Status | Notes |
+|----------|--------|--------|
+| Struct-based + DI | Yes | `AuthService` struct, `NewAuthService()` |
+| Does not use `gin.Context` | Yes | Only `context.Context` + DTO |
+| Does not access DB directly | Yes | All via `repositories.*` |
+| Errors handled, wrapped with context | Yes | `fmt.Errorf("...: %w", err)`, `logger.Errorf` |
+| Exported documented | Yes | Godoc for struct, New*, and all public methods |
+| File size | Yes | After changes: `auth_service.go` ~285 lines, `auth_service_tokens.go` ~195 lines (both ≤300). |
+| Function size | Yes | No function >100 lines |
+
+**Completed:** AuthService split into two files and **moved to subfolder** `services/auth/`: `auth_service.go` (Register, Login, ValidateToken + helpers) and `auth_service_tokens.go` (RefreshToken, ForgotPassword, ResetPassword + generatePasswordResetToken). Package = `auth`; callers use `auth.NewAuthService()` and `*auth.AuthService`.
 
 ---
 
 ### 2. ExampleService (`internal/app/services/example_service.go`)
 
-| Standar | Status | Catatan |
-|---------|--------|--------|
-| Struct-based + DI | ✅ | `ExampleService` struct, `NewExampleService()` |
-| Tidak pakai `gin.Context` | ⚠️ Pengecualian | `GetDataDatatables(ctx, c *gin.Context)` menerima `gin.Context` karena library DataTables-Gin membutuhkan `c` untuk binding query params. Pengecualian didokumentasikan di § Pengecualian Service (bawah). |
-| Tidak akses DB langsung | ✅ | GetData lewat `repositories.Get`; GetDataDatatables lewat `repositories.GetDataDatatables(c)` (repo yang akses DB). |
-| Error di-handle | ✅ | GetData dan GetDataDatatables return error; tidak ada ignore |
-| Exported didokumentasi | ✅ | Godoc untuk struct, New*, GetData, GetDataDatatables |
-| Ukuran file/function | ✅ | File ~51 baris; tiap function <100 baris |
+| Standard | Status | Notes |
+|----------|--------|--------|
+| Struct-based + DI | Yes | `ExampleService` struct, `NewExampleService()` |
+| Does not use `gin.Context` | Exception | `GetDataDatatables(ctx, c *gin.Context)` accepts `gin.Context` because the DataTables-Gin library requires `c` for binding query params. Exception documented in § Service Exceptions (below). |
+| Does not access DB directly | Yes | GetData via `repositories.Get`; GetDataDatatables via `repositories.GetDataDatatables(c)` (repo accesses DB). |
+| Errors handled | Yes | GetData and GetDataDatatables return errors; none ignored |
+| Exported documented | Yes | Godoc for struct, New*, GetData, GetDataDatatables |
+| File/function size | Yes | File ~51 lines; each function <100 lines |
 
-**Kesimpulan:** ExampleService memenuhi standar dengan satu pengecualian terdokumentasi: method DataTables menerima `gin.Context` untuk integrasi library pihak ketiga.
+**Conclusion:** ExampleService complies with standards with one documented exception: DataTables method accepts `gin.Context` for third-party library integration.
 
 ---
 
 ### 3. HealthService (`internal/app/services/health_service.go`)
 
-| Standar | Status | Catatan |
+| Standard | Status | Notes |
+|----------|--------|--------|
+| Struct-based + DI | Yes | `HealthService` struct, `NewHealthService()` |
+| Does not use `gin.Context` | Yes | Only `context.Context` |
+| Does not access DB directly | Minor | `checkDatabase()` calls `database.DB` for ping. Strict layering would require a "health repository"; in practice health checks often allow direct DB access for ping. Accepted with note. |
+| Errors handled | Yes | Ping errors logged and return status "error" |
+| Exported documented | Yes | Godoc for struct, New*, CheckHealth, GetMetrics |
+| File/function size | Yes | File ~91 lines; each function <100 lines |
+
+**Conclusion:** HealthService complies with standards. Use of `database.DB` in `checkDatabase()` for ping is an accepted layering exception for health checks.
+
+---
+
+## Documented Exceptions
+
+### Service Accepting `gin.Context` (ExampleService.GetDataDatatables)
+
+- **General rule:** Service MUST NOT handle HTTP concerns (`gin.Context`).
+- **Exception:** `ExampleService.GetDataDatatables(ctx, c *gin.Context)` accepts `*gin.Context` because the **Datatables-Gin** library (`datatables.OfReturn(c, query, ...)`) requires `*gin.Context` to read query params (draw, start, length, search, order, etc.). Moving binding to the controller would require duplicating the entire DataTables API into DTOs and is not natively supported by the library.
+- **Documentation:** This exception is recorded in CODING_STANDARDS §11 (API Design) so that code review does not reject on the grounds of "service must not use gin.Context".
+
+---
+
+## Action Summary
+
+| Service | Action | Status |
 |---------|--------|--------|
-| Struct-based + DI | ✅ | `HealthService` struct, `NewHealthService()` |
-| Tidak pakai `gin.Context` | ✅ | Hanya `context.Context` |
-| Tidak akses DB langsung | ⚠️ Minor | `checkDatabase()` memanggil `database.DB` untuk ping. Layering ketat mengharuskan "health repository"; secara praktik health check sering diizinkan akses langsung ke DB untuk ping. Diterima dengan catatan. |
-| Error di-handle | ✅ | Ping error di-log dan return status "error" |
-| Exported didokumentasi | ✅ | Godoc untuk struct, New*, CheckHealth, GetMetrics |
-| Ukuran file/function | ✅ | File ~91 baris; tiap function <100 baris |
-
-**Kesimpulan:** HealthService memenuhi standar. Akses `database.DB` di `checkDatabase()` untuk ping dianggap pengecualian layering yang dapat diterima untuk health check.
+| AuthService | Split files — `auth_service.go` + `auth_service_tokens.go` | Done |
+| ExampleService | Exception for `gin.Context` in GetDataDatatables documented in this doc + CODING_STANDARDS | Documented |
+| HealthService | No change; DB access for ping accepted | OK |
 
 ---
 
-## Pengecualian terdokumentasi
+## Post-fix Checklist
 
-### Service menerima `gin.Context` (ExampleService.GetDataDatatables)
-
-- **Aturan umum:** Service MUST NOT handle HTTP concerns (`gin.Context`).
-- **Pengecualian:** `ExampleService.GetDataDatatables(ctx, c *gin.Context)` menerima `*gin.Context` karena library **Datatables-Gin** (`datatables.OfReturn(c, query, ...)`) membutuhkan `*gin.Context` untuk membaca query params (draw, start, length, search, order, dll.). Memindahkan binding ke controller akan memerlukan duplikasi seluruh API DataTables ke DTO dan tidak didukung native oleh library.
-- **Dokumentasi:** Pengecualian ini dicatat di CODING_STANDARDS §11 (API Design) agar code review tidak menolak dengan alasan "service tidak boleh pakai gin.Context".
-
----
-
-## Ringkasan tindakan
-
-| Service | Tindakan | Status |
-|---------|----------|--------|
-| AuthService | Split file — `auth_service.go` + `auth_service_tokens.go` | ✅ Selesai |
-| ExampleService | Pengecualian `gin.Context` untuk GetDataDatatables dicatat di dokumen ini + CODING_STANDARDS | ✅ Didokumentasikan |
-| HealthService | Tidak ada perubahan; akses DB untuk ping dianggap boleh | ✅ OK |
-
----
-
-## Checklist post-perbaikan
-
-- [x] AuthService: dua file, masing-masing ≤300 baris.
-- [x] CODING_STANDARDS: tambah paragraf pengecualian service (DataTables + gin.Context).
-- [x] Build dan test: `go build ./...` dan `go test ./tests/...` lulus.
+- [x] AuthService: two files, each ≤300 lines.
+- [x] CODING_STANDARDS: added paragraph on service exception (DataTables + gin.Context).
+- [x] Build and test: `go build ./...` and `go test ./tests/...` pass.

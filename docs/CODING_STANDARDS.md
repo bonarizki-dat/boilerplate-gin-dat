@@ -117,8 +117,8 @@ After reading `00_AI_CRITICAL_RULES.md`, focus on these sections:
 
 **Action when exceeding:**
 - Split into multiple focused files
-- **Wajib subfolder saat split:** Jika satu fitur (service, controller, atau repository) dipecah menjadi lebih dari satu file, pindahkan **semua** file fitur tersebut ke subfolder baru dengan nama fitur. Parent folder hanya berisi fitur yang masih satu file. Contoh: `auth_service.go` + `auth_service_tokens.go` → pindah ke `services/auth/auth_service.go` + `services/auth/auth_service_tokens.go` (package `auth`). Dengan begitu fitur yang di-split tetap terkumpul dan struktur tetap rapi.
-- Contoh lain: `controllers/user_controller.go` + `controllers/user_validation.go` → `controllers/user/user_controller.go` + `controllers/user/user_validation.go` (package `user`).
+- **Subfolder required when splitting:** When one feature (service, controller, or repository) is split into more than one file, move **all** files for that feature into a new subfolder named after the feature. The parent folder should only contain features that are still single-file. Example: `auth_service.go` + `auth_service_tokens.go` → move to `services/auth/auth_service.go` + `services/auth/auth_service_tokens.go` (package `auth`). This keeps split features grouped and the structure clean.
+- Another example: `controllers/user_controller.go` + `controllers/user_validation.go` → `controllers/user/user_controller.go` + `controllers/user/user_validation.go` (package `user`).
 
 ### 1.2 Directory Structure
 
@@ -136,7 +136,7 @@ project/
 │   │   ├── dto/               # Data Transfer Objects
 │   │   ├── middlewares/       # Gin middlewares
 │   │   ├── routers/           # Route definitions
-│   │   └── services/          # Business logic; fitur di-split → subfolder (e.g. services/auth/)
+│   │   └── services/          # Business logic; split features use subfolder (e.g. services/auth/)
 │   └── domain/
 │       ├── models/            # Database entities
 │       └── repositories/      # Data access layer
@@ -823,9 +823,9 @@ func CreateUser(user *models.User) error {
 ```
 
 Rationale:
-- Konsistensi lintas tim dan kontribusi open-source
-- Memudahkan code review dan adopsi lintas region
-- Mempercepat pemrosesan oleh tooling/AI yang berbahasa Inggris
+- Consistency across teams and open-source contribution
+- Easier code review and adoption across regions
+- Better processing by English-oriented tooling and AI
 
 ### 6.1 Package Documentation
 
@@ -1757,13 +1757,13 @@ c.JSON(500, map[string]string{"message": "error"})
 - `utils.HandleErrorsWithData(c, code, data, message)` - Custom error status with body (e.g. health details)
 - `utils.ServiceUnavailableWithData(c, data, message)` - 503 with body; uses HandleErrorsWithData
 
-#### Pengecualian response format pihak ketiga
+#### Third-party response format exception
 
-Bila endpoint **harus** mengikuti format eksternal (mis. DataTables server-side, protokol pihak ketiga), response boleh dikirim dengan helper library tersebut asalkan konsisten dan didokumentasikan. Contoh: `ExampleController.GetDataDatatables` menggunakan `datatables.JSON(c, data)` untuk format DataTables, bukan `utils.Ok`. Error path tetap menggunakan response utils.
+When an endpoint **must** follow an external format (e.g. DataTables server-side, third-party protocol), the response may be sent using that library’s helper as long as it is consistent and documented. Example: `ExampleController.GetDataDatatables` uses `datatables.JSON(c, data)` for DataTables format, not `utils.Ok`. Error paths must still use response utils.
 
-#### Pengecualian service menerima gin.Context (DataTables)
+#### Service accepting gin.Context exception (DataTables)
 
-Aturan umum: service **MUST NOT** menerima atau memakai `gin.Context`. Pengecualian: bila integrasi library pihak ketiga (mis. Datatables-Gin) **memerlukan** `*gin.Context` untuk binding query params (draw, start, length, search, order), method service yang memanggil library tersebut boleh menerima `(ctx context.Context, c *gin.Context)` agar tidak duplikasi seluruh API library ke DTO. Contoh: `ExampleService.GetDataDatatables(ctx, c)` dan `repositories.GetDataDatatables(c)` — pengecualian ini dicatat di [SERVICE_COMPLIANCE_AUDIT.md](SERVICE_COMPLIANCE_AUDIT.md). Service lain tetap dilarang memakai `gin.Context`.
+General rule: services **MUST NOT** accept or use `gin.Context`. Exception: when a third-party library integration (e.g. Datatables-Gin) **requires** `*gin.Context` for binding query params (draw, start, length, search, order), the service method that calls that library may accept `(ctx context.Context, c *gin.Context)` to avoid duplicating the entire library API into DTOs. Example: `ExampleService.GetDataDatatables(ctx, c)` and `repositories.GetDataDatatables(c)` — this exception is documented in [SERVICE_COMPLIANCE_AUDIT.md](SERVICE_COMPLIANCE_AUDIT.md). Other services must not use `gin.Context`.
 
 #### Standard Response Format
 

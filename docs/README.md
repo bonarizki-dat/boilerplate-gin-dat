@@ -60,9 +60,9 @@ Welcome to the project documentation. This guide helps you navigate all document
 | **AI_QUICK_REFERENCE.md** | Quick templates and decision trees |
 | **00_AI_CRITICAL_RULES.md** | Quick reference for critical rules |
 | **AI_AGENT_RULES.md** | Mandatory rules for AI agents (file size, testing, docs, errors) |
-| **OPENTELEMETRY_TRACING_ANALYSIS.md** | Analisis opsional OpenTelemetry; request_id cukup untuk monolith |
-| **CONTROLLER_COMPLIANCE_AUDIT.md** | Checklist kepatuhan controller |
-| **SERVICE_COMPLIANCE_AUDIT.md** | Checklist kepatuhan service |
+| **OPENTELEMETRY_TRACING_ANALYSIS.md** | Optional OpenTelemetry analysis; request_id is sufficient for monolith |
+| **CONTROLLER_COMPLIANCE_AUDIT.md** | Controller compliance checklist |
+| **SERVICE_COMPLIANCE_AUDIT.md** | Service compliance checklist |
 
 ---
 
@@ -156,11 +156,11 @@ Welcome to the project documentation. This guide helps you navigate all document
 
 ## 📊 Documentation Statistics
 
-- **Total Documentation:** ~5,000+ lines (setelah pembersihan dokumen redundan)
+- **Total Documentation:** ~5,000+ lines (after cleanup of redundant docs)
 - **Critical Rules:** 100 lines
 - **Must Read Before Coding:** 505 lines
 - **Quick Lookup Index:** DOCS_INDEX.md
-- **Reference Material:** CODING_STANDARDS, DESIGN_PATTERNS, CONFIGURATION, OBSERVABILITY, dll.
+- **Reference Material:** CODING_STANDARDS, DESIGN_PATTERNS, CONFIGURATION, OBSERVABILITY, etc.
 
 **Efficiency Tip:**
 1. Read critical rules + quick ref first (~10 min)
@@ -174,9 +174,9 @@ Welcome to the project documentation. This guide helps you navigate all document
 **Last Updated:** 2026-02-03
 
 **Recent Changes:**
-- `AI_AGENT_RULES.md` tetap dipakai (penting untuk AI agents).
-- Removed `IMPROVEMENT_PLAN.md` dan `IMPROVEMENTS.md` (semua item sudah selesai).
-- Added `OPENTELEMETRY_TRACING_ANALYSIS.md` - Analisis opsional OpenTelemetry; request_id cukup untuk monolith.
+- `AI_AGENT_RULES.md` is kept (important for AI agents).
+- Removed `IMPROVEMENT_PLAN.md` and `IMPROVEMENTS.md` (all items completed).
+- Added `OPENTELEMETRY_TRACING_ANALYSIS.md` — optional OpenTelemetry analysis; request_id is sufficient for monolith.
 
 ---
 

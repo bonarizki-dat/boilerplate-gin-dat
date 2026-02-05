@@ -300,7 +300,7 @@ internal/app/controllers/user_controller.go
 ❌ log.Printf()                   // Use logger.Infof()
 ❌ file size >300 lines
 ❌ function >100 lines
-❌ split service/controller/repo tetap di folder yang sama (wajib subfolder: e.g. services/auth/)
+❌ split service/controller/repo stay in same folder (subfolder required: e.g. services/auth/)
 ❌ No tests for services
 ❌ Exported function without docs
 ```

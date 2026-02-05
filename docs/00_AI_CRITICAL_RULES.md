@@ -242,17 +242,17 @@ File approaching 250 lines?
 
 ---
 
-## 🚫 Git: Jangan commit file .md yang tidak penting
+## Git: Do not commit non-essential .md files
 
-**Rule:** File Markdown yang bersifat **lokal / analisis / sementara** jangan ikut di-commit dan di-push.
+**Rule:** Markdown files that are **local, analysis-only, or temporary** must not be committed or pushed.
 
-**Jangan commit (contoh):**
-- `PROJECT_ANALYSIS.md` — hasil analisis/nilai project (lokal saja)
-- Dokumen draft, catatan pribadi, atau .md yang hanya untuk referensi internal dan tidak dipakai oleh semua pengguna repo
+**Do not commit (examples):**
+- `PROJECT_ANALYSIS.md` — project analysis/score (local only)
+- Draft docs, personal notes, or .md used only for internal reference and not part of the shared project
 
-**Tetap commit:** Semua file di `docs/` yang menjadi bagian standar project (CODING_STANDARDS, DESIGN_PATTERNS, OBSERVABILITY, CONFIGURATION, AI rules, README, .env.example, dll.).
+**Do commit:** All files in `docs/` that are part of the project standard (CODING_STANDARDS, DESIGN_PATTERNS, OBSERVABILITY, CONFIGURATION, AI rules, README, .env.example, etc.).
 
-File yang tidak penting sudah dicantumkan di `.gitignore` (mis. `PROJECT_ANALYSIS.md`). Sebelum commit, pastikan tidak ada .md baru yang sifatnya analisis/lokal ikut ter-add.
+Non-essential files are listed in `.gitignore` (e.g. `PROJECT_ANALYSIS.md`). Before committing, ensure no new analysis/local .md files are staged.
 
 ---
 
