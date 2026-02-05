@@ -18,6 +18,7 @@
 *.prof
 *.pprof
 main
+boilerplate-gin-dat
 
 # =========================
 # Dependencies
