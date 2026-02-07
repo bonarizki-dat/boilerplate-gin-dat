@@ -108,6 +108,10 @@ Welcome to the project documentation. This guide helps you navigate all document
 2. Validation: Startup fail-fast
 3. Environment helpers: IsDevelopment(), IsProduction()
 
+**View or update API documentation (Swagger):**
+1. When `DEBUG=true`, open `/swagger/` in the browser (e.g. http://localhost:8000/swagger/).
+2. The source of truth is [api/openapi.yaml](../api/openapi.yaml); edit that file to change the docs (no annotations in controllers).
+
 ---
 
 ## 🚫 Common Mistakes (Don't Do This)

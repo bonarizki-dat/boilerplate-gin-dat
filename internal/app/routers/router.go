@@ -30,5 +30,8 @@ func SetupRoute() *gin.Engine {
 
 	RegisterRoutes(router) //routes register
 
+	// Swagger UI and OpenAPI spec (only when Debug is true)
+	RegisterSwaggerRoutes(router, true)
+
 	return router
 }

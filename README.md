@@ -138,6 +138,9 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 # ✅ You now have a working API with authentication!
 ```
 
+**API documentation (Swagger):**  
+When running with `DEBUG=true` (default in development), open [http://localhost:8000/swagger/](http://localhost:8000/swagger/) in your browser to view and try the API. The OpenAPI spec is maintained in [api/openapi.yaml](api/openapi.yaml); update that file to change the docs (no annotations in controller code).
+
 ---
 
 ## 📚 Documentation
