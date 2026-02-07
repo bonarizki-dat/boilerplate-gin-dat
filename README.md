@@ -180,6 +180,7 @@ If you're an AI agent or using AI-assisted development:
 | [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | Health checks, metrics, request tracing |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment management & validation |
 | [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) | Auth flows and JWT usage |
+| [docs/CONTRACTS.md](docs/CONTRACTS.md) | Stable contracts (response shape, auth, env) — avoid breaking changes |
 | [tests/README.md](tests/README.md) | Test organization and structure |
 | [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md) | High-level project analysis and metrics |
 
@@ -190,6 +191,7 @@ If you're an AI agent or using AI-assisted development:
 - ⚙️ [Configuration Guide](docs/CONFIGURATION.md) - Environment management
 - 🧪 [Test Structure](tests/README.md)
 - 📋 [Controller Compliance](docs/CONTROLLER_COMPLIANCE_AUDIT.md) - Standards checklist
+- 📜 [Stable contracts](docs/CONTRACTS.md) - Response shape, auth, env; versioning policy
 - 🗄️ [Database Migrations](internal/adapters/database/migrations/sql/README.md)
 - 🐳 [Docker Setup](#-docker-development)
 

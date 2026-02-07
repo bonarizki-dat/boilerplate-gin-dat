@@ -57,6 +57,7 @@ Welcome to the project documentation. This guide helps you navigate all document
 | **CONFIGURATION.md** | Environment configuration, validation, secrets management |
 | **OBSERVABILITY.md** | Health checks, metrics, request tracing, monitoring guide |
 | **AUTHENTICATION.md** | Auth flows, JWT, password reset |
+| **CONTRACTS.md** | Stable contracts (response, auth, env); versioning policy — avoid breaking changes |
 | **AI_QUICK_REFERENCE.md** | Quick templates and decision trees |
 | **00_AI_CRITICAL_RULES.md** | Quick reference for critical rules |
 | **AI_AGENT_RULES.md** | Mandatory rules for AI agents (file size, testing, docs, errors) |
@@ -111,6 +112,9 @@ Welcome to the project documentation. This guide helps you navigate all document
 **View or update API documentation (Swagger):**
 1. When `DEBUG=true`, open `/swagger/` in the browser (e.g. http://localhost:8000/swagger/).
 2. The source of truth is [api/openapi.yaml](../api/openapi.yaml); edit that file to change the docs (no annotations in controllers).
+
+**Check what is stable (avoid breaking consumers):**
+1. Read: [CONTRACTS.md](./CONTRACTS.md) — response shape, auth header, path prefix, env keys, versioning policy.
 
 ---
 
