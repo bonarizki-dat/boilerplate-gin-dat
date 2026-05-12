@@ -21,7 +21,6 @@ func setTestConfig(t *testing.T) {
 	t.Helper()
 	cfg := &config.Configuration{}
 	cfg.Server.JWTSecret = testJWTSecret
-	cfg.Server.Secret = "test-secret-at-least-32-characters-long!!!!"
 	config.SetForTest(cfg)
 }
 

@@ -75,7 +75,7 @@
 |-------|------|-------|----------|
 | **Environment Detection** | CONFIGURATION.md | - | `APP_ENV`, `IsDevelopment()`, `IsProduction()`, `IsStaging()` |
 | **Config Validation** | CONFIGURATION.md | - | `ValidateConfig()`, `startup`, `fail-fast`, `required keys` |
-| **Secrets Management** | CONFIGURATION.md | - | `JWT_SECRET`, `SECRET`, `openssl rand`, `32 characters` |
+| **Secrets Management** | CONFIGURATION.md | - | `JWT_SECRET`, `openssl rand`, `32 characters` |
 | **Environment Helpers** | CONFIGURATION.md | - | `config.IsDevelopment()`, `config.IsDebugEnabled()` |
 
 ---

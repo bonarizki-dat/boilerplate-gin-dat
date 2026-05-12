@@ -111,7 +111,7 @@ See [tests/README.md](tests/README.md) for details.
 | Variable | Purpose |
 |----------|---------|
 | `SERVER_PORT` | HTTP port (default `8000`) |
-| `JWT_SECRET`, `SECRET` | Auth and app secrets (min 32 chars; change in production) |
+| `JWT_SECRET` | Auth secret (min 32 chars; change in production) |
 | `MASTER_DB_*` | PostgreSQL connection for main DB |
 | `RATE_LIMIT_RPS`, `RATE_LIMIT_BURST` | Global API rate limit (defaults 100, 200) |
 
@@ -562,7 +562,6 @@ cp .env.example .env
 
 ```env
 # Server
-SECRET=your-super-secret-key-min-32-chars-CHANGE-THIS
 JWT_SECRET=your-jwt-secret-min-32-chars-CHANGE-THIS
 DEBUG=False                   # Set False in production
 SERVER_HOST=0.0.0.0
@@ -588,7 +587,7 @@ REPLICA_DB_PORT=5432
 ```
 
 **Security Notes:**
-- ⚠️ Change `SECRET` and `JWT_SECRET` in production (min 32 chars each)
+- ⚠️ Change `JWT_SECRET` in production (min 32 chars)
 - ⚠️ Set `DEBUG=False` in production
 - ⚠️ Set `MASTER_DB_LOG_MODE=False` in production
 - ⚠️ Never commit `.env` to version control
@@ -615,7 +614,7 @@ MASTER_DB_HOST=postgres_db
 ### JWT Configuration
 
 ```env
-SECRET=your-jwt-secret-key-min-32-characters
+JWT_SECRET=your-jwt-secret-key-min-32-characters
 ```
 
 - Token expiry: 24 hours (configurable in `auth_service.go`)
@@ -730,7 +729,7 @@ See [migrations README](internal/adapters/database/migrations/sql/README.md) for
 ```bash
 □ Update .env with production values
 □ Set DEBUG=False
-□ Set strong SECRET and JWT_SECRET (min 32 chars each)
+□ Set strong JWT_SECRET (min 32 chars)
 □ Set MASTER_DB_LOG_MODE=False
 □ Configure SSL for database
 □ Run database migrations
@@ -761,7 +760,6 @@ make production
 
 ```env
 DEBUG=False
-SECRET=super-long-random-secret-key-min-32-chars
 JWT_SECRET=super-long-jwt-secret-key-min-32-chars
 MASTER_DB_LOG_MODE=False
 MASTER_SSL_MODE=require

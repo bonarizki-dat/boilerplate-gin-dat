@@ -90,7 +90,6 @@ func SetupConfig() error {
 		Server: ServerConfiguration{
 			Host:                   viper.GetString("SERVER_HOST"),
 			Port:                   viper.GetString("SERVER_PORT"),
-			Secret:                 viper.GetString("SECRET"),
 			JWTSecret:              viper.GetString("JWT_SECRET"),
 			Debug:                  debug,
 			AllowedHosts:           allowedHosts,
@@ -142,7 +141,6 @@ func SetupConfig() error {
 func ValidateConfig() error {
 	// Required configuration keys
 	requiredKeys := []string{
-		"SECRET",
 		"JWT_SECRET",
 		"SERVER_HOST",
 		"SERVER_PORT",
@@ -163,14 +161,6 @@ func ValidateConfig() error {
 
 	if len(missingKeys) > 0 {
 		return fmt.Errorf("missing required config keys: %s", strings.Join(missingKeys, ", "))
-	}
-
-	// Validate SECRET is not using example value
-	secret := viper.GetString("SECRET")
-	if strings.Contains(strings.ToUpper(secret), "CHANGE-THIS") ||
-		strings.Contains(strings.ToLower(secret), "your-secret-key") ||
-		len(secret) < 32 {
-		return fmt.Errorf("SECRET must be changed from example value and be at least 32 characters long. Generate with: openssl rand -base64 32")
 	}
 
 	// Validate JWT_SECRET is not using example value

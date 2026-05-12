@@ -410,7 +410,6 @@ Required variables in `.env`:
 ```bash
 # JWT Configuration
 JWT_SECRET=your-secret-key-min-32-characters  # Min 32 chars required
-SECRET=your-app-secret-min-32-characters      # Min 32 chars required
 
 # Database
 MASTER_DB_HOST=localhost

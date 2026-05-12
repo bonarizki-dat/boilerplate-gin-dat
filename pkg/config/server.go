@@ -9,7 +9,6 @@ import (
 type ServerConfiguration struct {
 	Host                   string
 	Port                   string
-	Secret                 string
 	JWTSecret              string
 	Debug                  bool
 	AllowedHosts           string

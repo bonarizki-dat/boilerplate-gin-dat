@@ -56,7 +56,6 @@ The following env keys are part of the contract. Renaming or removing them is br
 | Key | Purpose |
 |-----|---------|
 | `APP_ENV` | development / staging / production |
-| `SECRET` | App secret (min 32 chars) |
 | `JWT_SECRET` | JWT signing secret (min 32 chars) |
 | `DEBUG` | Enable debug mode (e.g. Swagger) |
 | `SERVER_HOST`, `SERVER_PORT` | HTTP server address |

@@ -29,9 +29,6 @@ cp .env.example .env
 ### 2. Generate Secure Secrets
 
 ```bash
-# Generate SECRET
-openssl rand -base64 32
-
 # Generate JWT_SECRET
 openssl rand -base64 32
 ```
@@ -39,8 +36,7 @@ openssl rand -base64 32
 ### 3. Update .env File
 
 ```env
-# Replace with generated secrets
-SECRET=<your-generated-secret-here>
+# Replace with generated secret
 JWT_SECRET=<your-generated-jwt-secret-here>
 
 # Update database credentials
@@ -211,7 +207,6 @@ The following environment variables **MUST** be set. The application will not st
 
 | Variable | Description | Example | Notes |
 |----------|-------------|---------|-------|
-| `SECRET` | Application secret key | Generated via openssl | Min 32 chars, MUST be changed from example |
 | `JWT_SECRET` | JWT signing secret | Generated via openssl | Min 32 chars, MUST be changed from example |
 | `SERVER_HOST` | Server bind address | `0.0.0.0` | Use `0.0.0.0` to bind all interfaces |
 | `SERVER_PORT` | Server port | `8000` | Any available port |
@@ -314,7 +309,7 @@ if err := config.SetupConfig(); err != nil {
 Error: missing required config keys: JWT_SECRET, MASTER_DB_PASSWORD
 
 # Using example value
-Error: SECRET must be changed from example value and be at least 32 characters long.
+Error: JWT_SECRET must be changed from example value and be at least 32 characters long.
 Generate with: openssl rand -base64 32
 
 # Empty value
@@ -329,7 +324,6 @@ Error: SERVER_PORT cannot be empty
 
 **❌ DON'T:**
 ```env
-SECRET=12345
 JWT_SECRET=mysecret
 ```
 
@@ -357,15 +351,15 @@ openssl rand -base64 32
 **❌ DON'T:**
 ```env
 # Same secret everywhere
-Development: SECRET=abc123
-Production:  SECRET=abc123  # BAD!
+Development: JWT_SECRET=abc123
+Production:  JWT_SECRET=abc123  # BAD!
 ```
 
 **✅ DO:**
 ```env
 # Different secrets per environment
-Development: SECRET=dev_secret_K7gNU3sdo+OL0wNhqoVWhr3g
-Production:  SECRET=prod_secret_X9mPQ7tzo+RL2xOisqXYks4h
+Development: JWT_SECRET=dev_secret_K7gNU3sdo+OL0wNhqoVWhr3g
+Production:  JWT_SECRET=prod_secret_X9mPQ7tzo+RL2xOisqXYks4h
 ```
 
 ### 4. Rotate Secrets Regularly
@@ -485,9 +479,9 @@ cat .env | grep JWT_SECRET
 
 ---
 
-### "SECRET must be changed from example value"
+### "JWT_SECRET must be changed from example value"
 
-**Error:** `SECRET must be changed from example value and be at least 32 characters long`
+**Error:** `JWT_SECRET must be changed from example value and be at least 32 characters long`
 
 **Solution:**
 ```bash
@@ -495,7 +489,7 @@ cat .env | grep JWT_SECRET
 openssl rand -base64 32
 
 # Update .env
-SECRET=<paste-generated-secret-here>
+JWT_SECRET=<paste-generated-secret-here>
 ```
 
 ---
@@ -711,7 +705,6 @@ Before deploying to any environment:
 
 ```
 □ Copied .env.example to .env
-□ Generated unique SECRET (min 32 chars)
 □ Generated unique JWT_SECRET (min 32 chars)
 □ Updated all database credentials
 □ Set DEBUG=False for production
