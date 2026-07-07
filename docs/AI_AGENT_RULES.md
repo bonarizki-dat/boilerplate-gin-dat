@@ -481,7 +481,7 @@ func (s *TransactionService) ProcessPayment(dto dto.PaymentRequest) error {
 - [ ] Authorization checked where needed
 - [ ] Sensitive data sanitized in logs
 - [ ] Rate limiting applied
-- [ ] CORS configured properly
+- [ ] CORS configured properly (never combine `Access-Control-Allow-Origin: *` with `Access-Control-Allow-Credentials`; use an explicit origin allowlist via `CORS_ALLOWED_ORIGINS`)
 
 ### Validation Pattern
 ```go

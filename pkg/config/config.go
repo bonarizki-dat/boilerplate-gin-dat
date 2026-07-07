@@ -85,6 +85,9 @@ func SetupConfig() error {
 	if replicaSsl == "" {
 		replicaSsl = masterSsl
 	}
+	isDev := GetEnvironment() == EnvDevelopment
+	corsOrigins := resolveCORSOrigins(parseCommaSeparated(viper.GetString("CORS_ALLOWED_ORIGINS")), isDev)
+	trustedProxies := resolveTrustedProxies(viper.GetString("TRUSTED_PROXIES"), isDev)
 
 	appConfig = &Configuration{
 		Server: ServerConfiguration{
@@ -99,6 +102,8 @@ func SetupConfig() error {
 			RateLimitRPS:           rps,
 			RateLimitBurst:         burst,
 			RateLimitUseUser:       viper.GetBool("RATE_LIMIT_USE_USER"),
+			CORSAllowedOrigins:     corsOrigins,
+			TrustedProxies:         trustedProxies,
 		},
 		Database: DatabaseConfiguration{
 			Dbname:          viper.GetString("MASTER_DB_NAME"),
@@ -133,6 +138,7 @@ func SetupConfig() error {
 	}
 
 	logger.Infof("Configuration loaded and validated successfully")
+	logger.Infof("CORS allowed origins: %v", appConfig.Server.CORSAllowedOrigins)
 	return nil
 }
 
@@ -175,6 +181,12 @@ func ValidateConfig() error {
 	port := viper.GetString("SERVER_PORT")
 	if port == "" {
 		return fmt.Errorf("SERVER_PORT cannot be empty")
+	}
+
+	// Validate CORS origins (required in production; must be well-formed everywhere)
+	rawOrigins := parseCommaSeparated(viper.GetString("CORS_ALLOWED_ORIGINS"))
+	if err := validateCORSOrigins(rawOrigins, GetEnvironment() == EnvProduction); err != nil {
+		return err
 	}
 
 	logger.Debugf("Config validation passed for all required keys")

@@ -7,10 +7,13 @@ import (
 )
 
 type ServerConfiguration struct {
-	Host                   string
-	Port                   string
-	JWTSecret              string
-	Debug                  bool
+	Host      string
+	Port      string
+	JWTSecret string
+	Debug     bool
+	// AllowedHosts is reserved for future Host-header validation; it is NOT
+	// used for CORS (see CORSAllowedOrigins) or reverse proxy trust (see
+	// TrustedProxies).
 	AllowedHosts           string
 	LimitCountPerRequest   int64
 	Timezone               string // IANA name, e.g. UTC, Asia/Jakarta
@@ -20,6 +23,12 @@ type ServerConfiguration struct {
 	RateLimitRPS     int
 	RateLimitBurst   int
 	RateLimitUseUser bool
+	// CORSAllowedOrigins is the allowlist of exact frontend origins permitted
+	// to make cross-origin requests. Never contains "*".
+	CORSAllowedOrigins []string
+	// TrustedProxies is the list of IPs/CIDRs trusted to set X-Forwarded-For,
+	// passed to gin.Engine.SetTrustedProxies(). Unrelated to CORS.
+	TrustedProxies []string
 }
 
 // ServerConfig returns the server address (host:port) from loaded config.

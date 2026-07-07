@@ -9,9 +9,9 @@ import (
 func SetupRoute() *gin.Engine {
 	cfg := config.Get()
 	debug := cfg != nil && cfg.Server.Debug
-	allowedHosts := "0.0.0.0"
-	if cfg != nil && cfg.Server.AllowedHosts != "" {
-		allowedHosts = cfg.Server.AllowedHosts
+	var trustedProxies []string
+	if cfg != nil {
+		trustedProxies = cfg.Server.TrustedProxies
 	}
 	if debug {
 		gin.SetMode(gin.DebugMode)
@@ -20,7 +20,7 @@ func SetupRoute() *gin.Engine {
 	}
 
 	router := gin.New()
-	router.SetTrustedProxies([]string{allowedHosts})
+	router.SetTrustedProxies(trustedProxies)
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middlewares.CORSMiddleware())

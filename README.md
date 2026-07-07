@@ -736,7 +736,8 @@ See [migrations README](internal/adapters/database/migrations/sql/README.md) for
 □ Set up monitoring and logging
 □ Configure reverse proxy (nginx)
 □ Set up SSL/TLS certificates
-□ Configure CORS for your domain
+□ Set CORS_ALLOWED_ORIGINS to your frontend domain(s) (required in production, no wildcard)
+□ Set TRUSTED_PROXIES to your reverse proxy IP(s)
 ```
 
 **Runtime behavior (sudah ada di boilerplate):**

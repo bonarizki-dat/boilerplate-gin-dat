@@ -222,13 +222,48 @@ The following environment variables **MUST** be set. The application will not st
 |----------|-------------|---------|-------|
 | `APP_ENV` | Application environment | `development` | Values: `development`, `staging`, `production` |
 | `DEBUG` | Debug mode | Auto (true in dev) | Set to `True` only in development |
-| `ALLOWED_HOSTS` | Allowed hosts | `0.0.0.0` | Comma-separated list |
+| `ALLOWED_HOSTS` | Reserved for future Host-header validation | `0.0.0.0` | Comma-separated list. **Not** used for CORS or reverse proxy trust — see `CORS_ALLOWED_ORIGINS` and `TRUSTED_PROXIES` below. |
+| `CORS_ALLOWED_ORIGINS` | Frontend origins allowed to make cross-origin requests | Localhost dev origins (see below) | Comma-separated, full URL with scheme (`https://app.example.com`), no wildcard. **Required in production** — startup fails if unset. |
+| `TRUSTED_PROXIES` | Reverse proxy IPs/CIDRs trusted for `X-Forwarded-For` | `127.0.0.1,::1` in development | Comma-separated. Not related to CORS. Empty (trust none) by default outside development. |
 | `SERVER_TIMEZONE` | Server timezone | `UTC` | Must be valid IANA timezone (e.g. UTC, Asia/Jakarta). Default applied in main.go when unset. |
 | `RATE_LIMIT_RPS` | Auth rate limit (requests per second per IP) | `100` | Applied to `/auth` routes only. Set to 0 or omit to use default. |
 | `RATE_LIMIT_BURST` | Auth rate limit burst size | `200` | Max tokens in bucket. Set to 0 or omit to use default. |
 | `MASTER_DB_LOG_MODE` | Enable DB query logging | `True` | Set to `False` in production |
 | `MASTER_SSL_MODE` | Database SSL mode | `disable` | Use `require` in production |
 | `SERVER_SHUTDOWN_TIMEOUT` | Graceful shutdown timeout (seconds) | `10` | Max time to wait for in-flight requests before exit |
+
+### CORS Configuration
+
+`CORS_ALLOWED_ORIGINS`, `TRUSTED_PROXIES`, and `ALLOWED_HOSTS` are three separate concepts that are easy to confuse:
+
+| Variable | Purpose | Consumed by |
+|----------|---------|-------------|
+| `CORS_ALLOWED_ORIGINS` | Which frontend origins may call this API from a browser | `middlewares.CORSMiddleware()` |
+| `TRUSTED_PROXIES` | Which upstream proxy IPs are trusted to set `X-Forwarded-For` | `gin.Engine.SetTrustedProxies()` in `routers.SetupRoute()` |
+| `ALLOWED_HOSTS` | Reserved for future `Host` header validation | Not currently enforced |
+
+**Behavior:**
+
+- `CORSMiddleware` never sets `Access-Control-Allow-Origin: *`. It echoes back the exact request `Origin` only when that origin is present in `CORS_ALLOWED_ORIGINS`, and sets `Vary: Origin` accordingly.
+- `Access-Control-Allow-Credentials` is never set, since this API authenticates via a Bearer JWT in the `Authorization` header, not cookies.
+- In development (`APP_ENV=development` or unset), unset `CORS_ALLOWED_ORIGINS`/`TRUSTED_PROXIES` fall back to safe localhost defaults.
+- In staging/production, an empty `CORS_ALLOWED_ORIGINS` fails startup validation; an empty `TRUSTED_PROXIES` means no proxy is trusted (Gin uses the raw remote address).
+- Entries must start with `http://` or `https://`; a bare `*` is rejected at startup.
+
+**Verify with curl:**
+
+```bash
+# Allowed origin — should return the origin back in Access-Control-Allow-Origin
+curl -i -X OPTIONS http://localhost:8000/api/v1/auth/login \
+  -H "Origin: http://localhost:3000" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type,Authorization"
+
+# Disallowed origin — Access-Control-Allow-Origin should be absent
+curl -i -X OPTIONS http://localhost:8000/api/v1/auth/login \
+  -H "Origin: http://evil.com" \
+  -H "Access-Control-Request-Method: POST"
+```
 
 ### Graceful Shutdown
 
