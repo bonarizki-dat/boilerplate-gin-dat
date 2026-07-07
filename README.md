@@ -64,7 +64,7 @@ Start your next API project with:
 - 🛡️ **Rate Limiting** - Per-IP rate limiting to prevent abuse and brute force attacks
 - 📊 **Observability** - Health checks, metrics, and request tracing (<1% overhead)
 - ⚙️ **Environment Management** - Config validation, environment detection, secrets management
-- 🗃️ **Database Migrations** - SQL migrations and AutoMigrate support
+- 🗃️ **Database Migrations** - Versioned SQL migrations (golang-migrate), fail-fast on startup
 - 🐳 **Docker Support** - Dev and prod Docker configurations with live reload
 - 🧪 **Comprehensive Testing** - Service and controller test examples
 - 📊 **DataTables Integration** - Server-side pagination, search, and sorting
@@ -247,7 +247,7 @@ This boilerplate follows **Clean Architecture** principles with a layered approa
 project/
 ├── internal/                   # Private application code
 │   ├── adapters/              # External adapters (DB, cache)
-│   │   └── database/          # GORM, migrations (SQL + AutoMigrate)
+│   │   └── database/          # GORM connection, versioned SQL migrations (golang-migrate)
 │   ├── app/
 │   │   ├── controllers/       # HTTP handlers (struct-based)
 │   │   ├── dto/               # Data Transfer Objects

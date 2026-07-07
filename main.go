@@ -40,8 +40,9 @@ func main() {
 	if err := database.DbConnection(masterDSN, replicaDSN); err != nil {
 		logger.Fatalf("database DbConnection error: %s", err)
 	}
-	// later separate migration
-	migrations.Migrate()
+	if err := migrations.Migrate(); err != nil {
+		logger.Fatalf("database migration failed: %v", err)
+	}
 
 	router := routers.SetupRoute()
 

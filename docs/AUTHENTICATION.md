@@ -440,11 +440,10 @@ Configuration is validated on startup:
 Run migrations to add new fields:
 
 ```bash
-# Using GORM AutoMigrate (development)
-go run main.go  # Automatically migrates on startup
+go run main.go  # Applies pending SQL migrations automatically on startup (fail-fast)
 
-# Using manual migration (production)
-# Add migration file in internal/adapters/database/migrations/
+# Add new schema changes as versioned SQL files instead:
+make migrate-create NAME=add_something
 ```
 
 ### Fields Added

@@ -4,7 +4,9 @@ This directory contains SQL migration files for version-controlled database sche
 
 ## Current Migration Strategy
 
-The project currently uses **GORM AutoMigrate** for development convenience. However, for production environments, it's recommended to use a proper migration tool.
+The project uses **golang-migrate** to apply these versioned SQL files. `migrations.Migrate()` (in `internal/adapters/database/migrations/migration.go`) runs `migrate.Up()` automatically on app startup and **fails fast** (`main.go` calls `logger.Fatalf`) if any migration fails, so the server never starts against a broken/incomplete schema.
+
+GORM model structs (`internal/domain/models`) are used for querying only — schema changes must be made here as new SQL files, not by relying on GORM AutoMigrate.
 
 ## Migration Files Format
 
@@ -66,69 +68,24 @@ This will create:
 
 ## Integration with Application
 
-### Option 1: Keep AutoMigrate (Development)
-
-For development, continue using GORM AutoMigrate in `migrations/migration.go`:
+Migrations run automatically on every app startup via `migrations.Migrate()`, which reuses the app's existing GORM/Postgres connection (`database.DB.DB()`) instead of opening a second one:
 
 ```go
-func Migrate() {
-    var migrationModels = []interface{}{
-        &models.User{},
-        &models.Example{},
-    }
-    database.DB.AutoMigrate(migrationModels...)
+func Migrate() error {
+    sqlDB, _ := database.DB.DB()
+    driver, _ := migratepostgres.WithInstance(sqlDB, &migratepostgres.Config{})
+    m, _ := migrate.NewWithDatabaseInstance(migrationsPath, "postgres", driver)
+    return m.Up() // ErrNoChange treated as success; any other error is fatal to boot
 }
 ```
 
-### Option 2: Use golang-migrate (Production)
+For manual operations (rollback, scaffolding new migrations), use the Makefile targets, which wrap the `migrate` CLI:
 
-Create `cmd/migrate/main.go`:
-
-```go
-package main
-
-import (
-    "log"
-    "github.com/golang-migrate/migrate/v4"
-    _ "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/file"
-    "github.com/spf13/viper"
-)
-
-func main() {
-    // Load config
-    viper.SetConfigFile(".env")
-    viper.ReadInConfig()
-
-    // Build connection string
-    dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-        viper.GetString("MASTER_DB_USER"),
-        viper.GetString("MASTER_DB_PASSWORD"),
-        viper.GetString("MASTER_DB_HOST"),
-        viper.GetString("MASTER_DB_PORT"),
-        viper.GetString("MASTER_DB_NAME"),
-        viper.GetString("MASTER_SSL_MODE"),
-    )
-
-    m, err := migrate.New(
-        "file://internal/adapters/database/migrations/sql",
-        dbURL,
-    )
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-        log.Fatal(err)
-    }
-
-    log.Println("Migrations applied successfully")
-}
-```
-
-Run with:
 ```bash
-go run cmd/migrate/main.go
+make migrate-up            # apply pending migrations
+make migrate-down          # rollback last migration
+make migrate-version       # show current version
+make migrate-create NAME=add_products_table
 ```
 
 ## Best Practices
