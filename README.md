@@ -99,6 +99,15 @@ go run main.go
 # ✅ Visit: http://localhost:8000/health
 ```
 
+**Development seed data:** in `APP_ENV=development`, two demo users are seeded automatically on startup (idempotent — safe on every restart) so you can log in immediately:
+
+| Email | Password |
+|-------|----------|
+| `admin@example.local` | `Password123!` |
+| `user@example.local` | `Password123!` |
+
+Never enabled outside development; see [internal/adapters/database/seeders/seeder.go](internal/adapters/database/seeders/seeder.go).
+
 **Run tests:**
 ```bash
 make test              # Unit tests

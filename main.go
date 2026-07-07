@@ -10,6 +10,7 @@ import (
 
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/adapters/database"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/adapters/database/migrations"
+	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/adapters/database/seeders"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/internal/app/routers"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/config"
 	"github.com/bonarizki-dat/boilerplate-gin-dat/pkg/logger"
@@ -42,6 +43,12 @@ func main() {
 	}
 	if err := migrations.Migrate(); err != nil {
 		logger.Fatalf("database migration failed: %v", err)
+	}
+
+	if config.IsDevelopment() {
+		if err := seeders.Run(); err != nil {
+			logger.Fatalf("database seeding failed: %v", err)
+		}
 	}
 
 	router := routers.SetupRoute()
