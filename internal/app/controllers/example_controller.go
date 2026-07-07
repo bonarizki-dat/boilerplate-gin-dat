@@ -21,23 +21,6 @@ func NewExampleController(service *services.ExampleService) *ExampleController {
 	}
 }
 
-// GetData handles GET for raw example data (standard JSON response).
-//
-// GET /example (or as registered)
-// Response: list of example records in standard success format.
-func (ctrl *ExampleController) GetData(c *gin.Context) {
-	ctx, start := logger.LogStart(c.Request.Context(), "ExampleController.GetData")
-
-	data, err := ctrl.service.GetData(ctx)
-	if err != nil {
-		logger.LogFinish(ctx, "ExampleController.GetData", err, start)
-		utils.InternalServerError(c, err, "Failed to retrieve data")
-		return
-	}
-	logger.LogFinish(ctx, "ExampleController.GetData", nil, start)
-	utils.Ok(c, data, "Data retrieved successfully")
-}
-
 // GetDataDatatables handles GET for DataTables server-side format.
 //
 // GET /datatables
