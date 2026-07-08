@@ -26,7 +26,7 @@ func setupTestRouter() *gin.Engine {
 
 // setupAuthController creates an AuthController with real AuthService (for integration-style tests).
 func setupAuthController() *controllers.AuthController {
-	authService := auth.NewAuthService(repositories.NewUserRepository(), nil)
+	authService := auth.NewAuthService(repositories.NewUserRepository(), repositories.NewRefreshTokenRepository(), nil)
 	return controllers.NewAuthController(authService)
 }
 

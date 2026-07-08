@@ -2,6 +2,8 @@ package services_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
@@ -21,15 +23,23 @@ func setTestConfig(t *testing.T) {
 	t.Helper()
 	cfg := &config.Configuration{}
 	cfg.Server.JWTSecret = testJWTSecret
+	cfg.Server.RefreshTokenTTLDays = 7
 	config.SetForTest(cfg)
 }
 
+// testHashToken mirrors auth.hashToken (unexported) so tests can seed
+// MockRefreshTokenRepository with records keyed the same way the service stores them.
+func testHashToken(raw string) string {
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])
+}
+
 func newAuthServiceWithMockRepo() *auth.AuthService {
-	return auth.NewAuthService(mocks.NewMockUserRepository(), nil)
+	return auth.NewAuthService(mocks.NewMockUserRepository(), mocks.NewMockRefreshTokenRepository(), nil)
 }
 
 func newAuthServiceWithRepo(repo repositories.UserRepository) *auth.AuthService {
-	return auth.NewAuthService(repo, nil)
+	return auth.NewAuthService(repo, mocks.NewMockRefreshTokenRepository(), nil)
 }
 
 // NOTE: These tests demonstrate testing patterns for services.
@@ -169,60 +179,127 @@ func TestPasswordComplexity(t *testing.T) {
 	}
 }
 
-// TestRefreshToken tests refresh token functionality with mocked repository
+// TestRefreshToken tests refresh token functionality with mocked repositories.
 func TestRefreshToken(t *testing.T) {
 	setTestConfig(t)
-	mockRepo := mocks.NewMockUserRepository()
-	user := &models.User{ID: 1, Name: "Test", Email: "test@example.com"}
-	mockRepo.SetUserByRefreshToken("valid-token-here", user)
-	service := auth.NewAuthService(mockRepo, nil)
 
-	tests := []struct {
-		name          string
-		refreshToken  string
-		expectError   error
-		expectedValid bool
-	}{
-		{
-			name:          "Valid refresh token",
-			refreshToken:  "valid-token-here",
-			expectError:   nil,
-			expectedValid: true,
-		},
-		{
-			name:          "Invalid refresh token",
-			refreshToken:  "invalid-token",
-			expectError:   auth.ErrInvalidRefreshToken,
-			expectedValid: false,
-		},
-		{
-			name:          "Empty refresh token",
-			refreshToken:  "",
-			expectError:   auth.ErrInvalidRefreshToken,
-			expectedValid: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := &dto.RefreshTokenRequest{
-				RefreshToken: tt.refreshToken,
-			}
-
-			response, err := service.RefreshToken(context.Background(), req)
-
-			if tt.expectError != nil {
-				assert.Error(t, err)
-				assert.Nil(t, response)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, response)
-				assert.NotEmpty(t, response.AccessToken)
-				assert.NotEmpty(t, response.RefreshToken)
-				assert.Equal(t, "Bearer", response.TokenType)
-			}
+	t.Run("valid token rotates and old token is revoked", func(t *testing.T) {
+		userRepo := mocks.NewMockUserRepository()
+		userRepo.AddUserByEmail("test@example.com", &models.User{ID: 1, Name: "Test", Email: "test@example.com"})
+		tokenRepo := mocks.NewMockRefreshTokenRepository()
+		tokenRepo.Seed(&models.RefreshToken{
+			UserID:    1,
+			TokenHash: testHashToken("valid-token-here"),
+			FamilyID:  "family-1",
+			ExpiresAt: time.Now().Add(24 * time.Hour),
 		})
-	}
+		service := auth.NewAuthService(userRepo, tokenRepo, nil)
+
+		response, err := service.RefreshToken(context.Background(), &dto.RefreshTokenRequest{RefreshToken: "valid-token-here"})
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.NotEmpty(t, response.AccessToken)
+		assert.NotEmpty(t, response.RefreshToken)
+		assert.NotEqual(t, "valid-token-here", response.RefreshToken)
+		assert.Equal(t, "Bearer", response.TokenType)
+
+		// Old token must now be revoked and unusable.
+		old, _ := tokenRepo.GetByTokenHash(testHashToken("valid-token-here"))
+		assert.NotNil(t, old.RevokedAt)
+	})
+
+	t.Run("unknown token", func(t *testing.T) {
+		service := newAuthServiceWithMockRepo()
+		_, err := service.RefreshToken(context.Background(), &dto.RefreshTokenRequest{RefreshToken: "never-issued"})
+		assert.True(t, errors.Is(err, auth.ErrInvalidRefreshToken))
+	})
+
+	t.Run("expired token", func(t *testing.T) {
+		userRepo := mocks.NewMockUserRepository()
+		userRepo.AddUserByEmail("test@example.com", &models.User{ID: 1, Email: "test@example.com"})
+		tokenRepo := mocks.NewMockRefreshTokenRepository()
+		tokenRepo.Seed(&models.RefreshToken{
+			UserID:    1,
+			TokenHash: testHashToken("expired-token"),
+			FamilyID:  "family-1",
+			ExpiresAt: time.Now().Add(-1 * time.Hour),
+		})
+		service := auth.NewAuthService(userRepo, tokenRepo, nil)
+
+		_, err := service.RefreshToken(context.Background(), &dto.RefreshTokenRequest{RefreshToken: "expired-token"})
+		assert.True(t, errors.Is(err, auth.ErrInvalidRefreshToken))
+	})
+}
+
+// TestRefreshTokenReuseDetection verifies that replaying an already-rotated
+// token revokes the entire token family (theft response), not just the token.
+func TestRefreshTokenReuseDetection(t *testing.T) {
+	setTestConfig(t)
+	userRepo := mocks.NewMockUserRepository()
+	userRepo.AddUserByEmail("test@example.com", &models.User{ID: 1, Email: "test@example.com"})
+	tokenRepo := mocks.NewMockRefreshTokenRepository()
+	tokenRepo.Seed(&models.RefreshToken{
+		UserID:    1,
+		TokenHash: testHashToken("original-token"),
+		FamilyID:  "family-1",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	})
+	service := auth.NewAuthService(userRepo, tokenRepo, nil)
+
+	// First use: legitimate rotation.
+	first, err := service.RefreshToken(context.Background(), &dto.RefreshTokenRequest{RefreshToken: "original-token"})
+	assert.NoError(t, err)
+	assert.NotNil(t, first)
+
+	// Replaying the now-revoked original token must fail AND kill the family,
+	// so the token rotated out of it (first.RefreshToken) also stops working.
+	_, err = service.RefreshToken(context.Background(), &dto.RefreshTokenRequest{RefreshToken: "original-token"})
+	assert.True(t, errors.Is(err, auth.ErrInvalidRefreshToken))
+
+	_, err = service.RefreshToken(context.Background(), &dto.RefreshTokenRequest{RefreshToken: first.RefreshToken})
+	assert.True(t, errors.Is(err, auth.ErrInvalidRefreshToken), "entire family should be revoked after reuse detection")
+}
+
+// TestLogout verifies that logout revokes only the presented token and is idempotent.
+func TestLogout(t *testing.T) {
+	setTestConfig(t)
+	tokenRepo := mocks.NewMockRefreshTokenRepository()
+	tokenRepo.Seed(&models.RefreshToken{
+		UserID:    1,
+		TokenHash: testHashToken("session-token"),
+		FamilyID:  "family-1",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	})
+	service := auth.NewAuthService(mocks.NewMockUserRepository(), tokenRepo, nil)
+
+	err := service.Logout(context.Background(), &dto.LogoutRequest{RefreshToken: "session-token"})
+	assert.NoError(t, err)
+
+	revoked, _ := tokenRepo.GetByTokenHash(testHashToken("session-token"))
+	assert.NotNil(t, revoked.RevokedAt)
+
+	// Idempotent: logging out again (or an unknown token) must not error.
+	err = service.Logout(context.Background(), &dto.LogoutRequest{RefreshToken: "session-token"})
+	assert.NoError(t, err)
+	err = service.Logout(context.Background(), &dto.LogoutRequest{RefreshToken: "never-issued"})
+	assert.NoError(t, err)
+}
+
+// TestLogoutAll verifies that logout-all revokes every active token for a user.
+func TestLogoutAll(t *testing.T) {
+	setTestConfig(t)
+	tokenRepo := mocks.NewMockRefreshTokenRepository()
+	tokenRepo.Seed(&models.RefreshToken{UserID: 1, TokenHash: testHashToken("device-a"), FamilyID: "family-a", ExpiresAt: time.Now().Add(24 * time.Hour)})
+	tokenRepo.Seed(&models.RefreshToken{UserID: 1, TokenHash: testHashToken("device-b"), FamilyID: "family-b", ExpiresAt: time.Now().Add(24 * time.Hour)})
+	service := auth.NewAuthService(mocks.NewMockUserRepository(), tokenRepo, nil)
+
+	err := service.LogoutAll(context.Background(), 1)
+	assert.NoError(t, err)
+
+	a, _ := tokenRepo.GetByTokenHash(testHashToken("device-a"))
+	b, _ := tokenRepo.GetByTokenHash(testHashToken("device-b"))
+	assert.NotNil(t, a.RevokedAt)
+	assert.NotNil(t, b.RevokedAt)
 }
 
 // TestForgotPassword tests forgot password functionality using MockUserRepository.

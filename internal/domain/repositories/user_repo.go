@@ -13,9 +13,9 @@ import (
 // UserRepository defines data access for user entity (used by auth and others).
 type UserRepository interface {
 	GetUserByEmail(email string) (*models.User, error)
+	GetUserByID(id uint) (*models.User, error)
 	CreateUser(user *models.User) error
 	UpdateUser(user *models.User) error
-	GetUserByRefreshToken(token string) (*models.User, error)
 	GetUserByPasswordResetToken(token string) (*models.User, error)
 }
 
@@ -56,15 +56,15 @@ func (r *userRepo) UpdateUser(user *models.User) error {
 	return nil
 }
 
-func (r *userRepo) GetUserByRefreshToken(token string) (*models.User, error) {
+func (r *userRepo) GetUserByID(id uint) (*models.User, error) {
 	var user models.User
-	err := database.DB.Where("refresh_token = ?", token).First(&user).Error
+	err := database.DB.First(&user, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		logger.Errorf("failed to get user by refresh token: %v", err)
-		return nil, fmt.Errorf("failed to get user by refresh token: %w", err)
+		logger.Errorf("failed to get user by id: %v", err)
+		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 	return &user, nil
 }

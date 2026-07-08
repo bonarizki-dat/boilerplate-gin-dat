@@ -17,6 +17,7 @@ func RegisterAuthRoutes(group *gin.RouterGroup, authService *auth.AuthService) {
 		authRoutes.POST("/register", authController.Register)
 		authRoutes.POST("/login", authController.Login)
 		authRoutes.POST("/refresh", authController.RefreshToken)
+		authRoutes.POST("/logout", authController.Logout)
 		authRoutes.POST("/forgot-password", authController.ForgotPassword)
 		authRoutes.POST("/reset-password", authController.ResetPassword)
 	}

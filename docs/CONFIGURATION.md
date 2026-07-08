@@ -231,6 +231,7 @@ The following environment variables **MUST** be set. The application will not st
 | `MASTER_DB_LOG_MODE` | Enable DB query logging | `True` | Set to `False` in production |
 | `MASTER_SSL_MODE` | Database SSL mode | `disable` | Use `require` in production |
 | `SERVER_SHUTDOWN_TIMEOUT` | Graceful shutdown timeout (seconds) | `10` | Max time to wait for in-flight requests before exit |
+| `REFRESH_TOKEN_TTL_DAYS` | Refresh token lifetime (days) | `7` | Token is hashed at rest and rotated on every use; see [AUTHENTICATION.md](AUTHENTICATION.md) |
 
 ### CORS Configuration
 

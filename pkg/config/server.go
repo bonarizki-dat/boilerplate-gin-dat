@@ -19,6 +19,7 @@ type ServerConfiguration struct {
 	Timezone               string // IANA name, e.g. UTC, Asia/Jakarta
 	RequestTimeoutSeconds  int    // http.Server read/write timeout
 	ShutdownTimeoutSeconds int    // graceful shutdown max wait
+	RefreshTokenTTLDays    int    // refresh token lifetime before it must be re-issued via login
 	// Rate limit (used by middlewares)
 	RateLimitRPS     int
 	RateLimitBurst   int

@@ -132,6 +132,14 @@ components:
           type: string
           example: Bearer
 
+    LogoutRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+
     ForgotPasswordRequest:
       type: object
       required:
@@ -344,6 +352,54 @@ paths:
                 $ref: '#/components/schemas/ApiErrorResponse'
         '401':
           description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      summary: Logout (single session)
+      description: Revoke one refresh token (this device/session only). Always returns 200, even for an unknown or already-revoked token, so this endpoint cannot be used to probe token validity.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Missing or invalid refresh_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+
+  /api/v1/logout-all:
+    post:
+      summary: Logout from all devices
+      description: Revoke every active refresh token for the authenticated user (all devices/sessions).
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out from all devices successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Missing or invalid access token
           content:
             application/json:
               schema:

@@ -9,13 +9,10 @@ import (
 // This model is used for authentication and user management.
 // Password field stores bcrypt hashed passwords only.
 type User struct {
-	ID        uint       `json:"id" gorm:"primaryKey"`
-	Name      string     `json:"name" gorm:"type:varchar(255);not null"`
-	Email     string     `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
-	Password  string     `json:"-" gorm:"type:varchar(255);not null"` // Never expose in JSON
-
-	// Refresh token for JWT token refresh mechanism
-	RefreshToken string `json:"-" gorm:"type:varchar(500);index"`
+	ID       uint   `json:"id" gorm:"primaryKey"`
+	Name     string `json:"name" gorm:"type:varchar(255);not null"`
+	Email    string `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
+	Password string `json:"-" gorm:"type:varchar(255);not null"` // Never expose in JSON
 
 	// Password reset token and expiry for forgot password flow
 	PasswordResetToken  string     `json:"-" gorm:"type:varchar(255);index"`

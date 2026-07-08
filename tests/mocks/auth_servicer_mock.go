@@ -20,6 +20,8 @@ type MockAuthServicer struct {
 	ForgotPasswordFunc func(context.Context, *dto.ForgotPasswordRequest) (string, error)
 	ResetPasswordFunc  func(context.Context, *dto.ResetPasswordRequest) error
 	ValidateTokenFunc  func(string) (uint, error)
+	LogoutFunc         func(context.Context, *dto.LogoutRequest) error
+	LogoutAllFunc      func(context.Context, uint) error
 }
 
 func (m *MockAuthServicer) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
@@ -62,4 +64,18 @@ func (m *MockAuthServicer) ValidateToken(token string) (uint, error) {
 		return m.ValidateTokenFunc(token)
 	}
 	return 0, errors.New("invalid token")
+}
+
+func (m *MockAuthServicer) Logout(ctx context.Context, req *dto.LogoutRequest) error {
+	if m.LogoutFunc != nil {
+		return m.LogoutFunc(ctx, req)
+	}
+	return nil
+}
+
+func (m *MockAuthServicer) LogoutAll(ctx context.Context, userID uint) error {
+	if m.LogoutAllFunc != nil {
+		return m.LogoutAllFunc(ctx, userID)
+	}
+	return nil
 }

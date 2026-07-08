@@ -227,6 +227,53 @@ func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 	utils.Ok(c, nil, "Password reset successfully")
 }
 
+// Logout handles single-session logout by revoking the given refresh token.
+//
+// POST /auth/logout
+// Request body: LogoutRequest (JSON)
+// Response: success regardless of whether the token existed (avoids leaking token validity)
+func (ctrl *AuthController) Logout(c *gin.Context) {
+	var err error
+	ctx, start := logger.LogStart(c.Request.Context(), "AuthController.Logout")
+
+	var req dto.LogoutRequest
+	if err = c.ShouldBindJSON(&req); err != nil {
+		logger.Warnf("invalid logout request: %v", err)
+		logger.LogFinish(ctx, "AuthController.Logout", err, start)
+		utils.BadRequest(c, err, "Invalid request data")
+		return
+	}
+
+	if err = ctrl.service.Logout(ctx, &req); err != nil {
+		logger.Errorf("logout failed: %v", err)
+		logger.LogFinish(ctx, "AuthController.Logout", err, start)
+		utils.InternalServerError(c, err, "Failed to logout")
+		return
+	}
+
+	logger.LogFinish(ctx, "AuthController.Logout", nil, start)
+	utils.Ok(c, nil, "Logout successful")
+}
+
+// LogoutAll revokes every refresh token for the authenticated user (all devices/sessions).
+//
+// POST /api/v1/logout-all (requires JWT)
+// Response: success message
+func (ctrl *AuthController) LogoutAll(c *gin.Context) {
+	ctx, start := logger.LogStart(c.Request.Context(), "AuthController.LogoutAll")
+
+	userID := c.GetUint("user_id")
+	if err := ctrl.service.LogoutAll(ctx, userID); err != nil {
+		logger.Errorf("logout-all failed: %v", err)
+		logger.LogFinish(ctx, "AuthController.LogoutAll", err, start)
+		utils.InternalServerError(c, err, "Failed to logout from all devices")
+		return
+	}
+
+	logger.LogFinish(ctx, "AuthController.LogoutAll", nil, start)
+	utils.Ok(c, nil, "Logged out from all devices successfully")
+}
+
 // Profile returns the current authenticated user's profile.
 //
 // GET /api/profile (requires JWT)

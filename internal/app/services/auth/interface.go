@@ -15,4 +15,8 @@ type AuthServicer interface {
 	ForgotPassword(ctx context.Context, req *dto.ForgotPasswordRequest) (string, error)
 	ResetPassword(ctx context.Context, req *dto.ResetPasswordRequest) error
 	ValidateToken(token string) (uint, error)
+	// Logout revokes the single refresh token supplied (this device/session only).
+	Logout(ctx context.Context, req *dto.LogoutRequest) error
+	// LogoutAll revokes every active refresh token for userID (all devices/sessions).
+	LogoutAll(ctx context.Context, userID uint) error
 }

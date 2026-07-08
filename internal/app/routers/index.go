@@ -22,7 +22,8 @@ func RegisterRoutes(route *gin.Engine) {
 	apiV1 := route.Group("/api/v1")
 	apiV1.Use(middlewares.RateLimitMiddleware())
 	userRepo := repositories.NewUserRepository()
-	authService := auth.NewAuthService(userRepo, nil)
+	refreshTokenRepo := repositories.NewRefreshTokenRepository()
+	authService := auth.NewAuthService(userRepo, refreshTokenRepo, nil)
 	exampleService := services.NewExampleService()
 
 	RegisterAuthRoutes(apiV1, authService)
@@ -34,5 +35,6 @@ func RegisterRoutes(route *gin.Engine) {
 	protectedRoutes.Use(middlewares.AuthMiddleware(authService))
 	{
 		protectedRoutes.GET("/profile", authController.Profile)
+		protectedRoutes.POST("/logout-all", authController.LogoutAll)
 	}
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -29,13 +30,14 @@ var (
 
 // AuthService handles authentication-related business logic
 type AuthService struct {
-	userRepo repositories.UserRepository
-	mailer   EmailSender // optional; when set, ForgotPassword sends token via email instead of returning it
+	userRepo         repositories.UserRepository
+	refreshTokenRepo repositories.RefreshTokenRepository
+	mailer           EmailSender // optional; when set, ForgotPassword sends token via email instead of returning it
 }
 
 // NewAuthService creates a new AuthService instance. mailer may be nil (token returned in response for dev/testing).
-func NewAuthService(userRepo repositories.UserRepository, mailer EmailSender) *AuthService {
-	return &AuthService{userRepo: userRepo, mailer: mailer}
+func NewAuthService(userRepo repositories.UserRepository, refreshTokenRepo repositories.RefreshTokenRepository, mailer EmailSender) *AuthService {
+	return &AuthService{userRepo: userRepo, refreshTokenRepo: refreshTokenRepo, mailer: mailer}
 }
 
 // Register creates a new user account with validation and password hashing.
@@ -89,20 +91,18 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// Generate refresh token
-	refreshToken, err := s.generateRefreshToken()
+	// Issue a new refresh token rotation chain (new session/family) for this device
+	familyID, err := s.newFamilyID()
 	if err != nil {
-		logger.Errorf("failed to generate refresh token: %v", err)
+		logger.Errorf("failed to generate token family id: %v", err)
 		logger.LogFinish(ctx, "AuthService.Register", err, start)
-		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+		return nil, fmt.Errorf("failed to generate token family id: %w", err)
 	}
-
-	// Save refresh token to database
-	user.RefreshToken = refreshToken
-	if err := s.userRepo.UpdateUser(user); err != nil {
-		logger.Errorf("failed to save refresh token: %v", err)
+	refreshToken, err := s.issueRefreshToken(user.ID, familyID)
+	if err != nil {
+		logger.Errorf("failed to issue refresh token: %v", err)
 		logger.LogFinish(ctx, "AuthService.Register", err, start)
-		return nil, fmt.Errorf("failed to save refresh token: %w", err)
+		return nil, fmt.Errorf("failed to issue refresh token: %w", err)
 	}
 
 	// Build response
@@ -157,20 +157,18 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// Generate refresh token
-	refreshToken, err := s.generateRefreshToken()
+	// Issue a new refresh token rotation chain (new session/family) for this device
+	familyID, err := s.newFamilyID()
 	if err != nil {
-		logger.Errorf("failed to generate refresh token: %v", err)
+		logger.Errorf("failed to generate token family id: %v", err)
 		logger.LogFinish(ctx, "AuthService.Login", err, start)
-		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+		return nil, fmt.Errorf("failed to generate token family id: %w", err)
 	}
-
-	// Save refresh token to database
-	user.RefreshToken = refreshToken
-	if err := s.userRepo.UpdateUser(user); err != nil {
-		logger.Errorf("failed to save refresh token: %v", err)
+	refreshToken, err := s.issueRefreshToken(user.ID, familyID)
+	if err != nil {
+		logger.Errorf("failed to issue refresh token: %v", err)
 		logger.LogFinish(ctx, "AuthService.Login", err, start)
-		return nil, fmt.Errorf("failed to save refresh token: %w", err)
+		return nil, fmt.Errorf("failed to issue refresh token: %w", err)
 	}
 
 	// Build response
@@ -288,4 +286,53 @@ func (s *AuthService) generateRefreshToken() (string, error) {
 		return "", fmt.Errorf("failed to generate random token: %w", err)
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+// hashToken returns the SHA-256 hex digest of a raw token for at-rest storage.
+//
+// Plain SHA-256 (not bcrypt) is intentional: refresh tokens are 256-bit
+// cryptographically random values, not low-entropy user secrets, so a fast
+// hash is sufficient to make a stolen database dump useless without needing
+// a deliberately slow KDF.
+func hashToken(raw string) string {
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])
+}
+
+// newFamilyID generates a new rotation-chain identifier, one per login session.
+func (s *AuthService) newFamilyID() (string, error) {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", fmt.Errorf("failed to generate family id: %w", err)
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+// refreshTokenTTL returns the configured refresh token lifetime, defaulting to 7 days.
+func (s *AuthService) refreshTokenTTL() time.Duration {
+	if c := config.Get(); c != nil && c.Server.RefreshTokenTTLDays > 0 {
+		return time.Duration(c.Server.RefreshTokenTTLDays) * 24 * time.Hour
+	}
+	return 7 * 24 * time.Hour
+}
+
+// issueRefreshToken generates a new raw refresh token, persists its hash (with
+// expiry) under familyID, and returns the raw token to send to the client.
+// The raw value is never stored; only hashToken(raw) is written to the database.
+func (s *AuthService) issueRefreshToken(userID uint, familyID string) (string, error) {
+	raw, err := s.generateRefreshToken()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	record := &models.RefreshToken{
+		UserID:    userID,
+		TokenHash: hashToken(raw),
+		FamilyID:  familyID,
+		ExpiresAt: time.Now().Add(s.refreshTokenTTL()),
+	}
+	if err := s.refreshTokenRepo.Create(record); err != nil {
+		return "", fmt.Errorf("failed to save refresh token: %w", err)
+	}
+	return raw, nil
 }

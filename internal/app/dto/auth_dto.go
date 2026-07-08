@@ -81,3 +81,9 @@ type ResetPasswordRequest struct {
 	// NewPassword is the new password to set (min 8 characters)
 	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
+
+// LogoutRequest represents the payload for logging out a single session.
+type LogoutRequest struct {
+	// RefreshToken is the token to revoke (this device/session only)
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}

@@ -13,7 +13,8 @@ This boilerplate provides a complete authentication system with the following fe
 - ✅ User Registration
 - ✅ User Login
 - ✅ JWT Access Token (24 hours expiry)
-- ✅ Refresh Token Mechanism
+- ✅ Refresh Token Mechanism (hashed at rest, per-token expiry, rotation, reuse/theft detection)
+- ✅ Logout (single session) and Logout-All (all devices)
 - ✅ Password Reset Flow
 - ✅ Token Rotation (security best practice)
 
@@ -126,18 +127,45 @@ User → POST /api/v1/auth/register → AuthController → AuthService → Repos
 ```
 
 **Security Features:**
-- Token rotation: Old refresh token invalidated immediately
-- New refresh token generated for each refresh
-- Reduces risk of token theft/replay attacks
-- Refresh token stored in database (can be revoked)
+- **Hashed at rest:** Only the SHA-256 hash of the refresh token is stored; the raw value is never persisted.
+- **Rotation:** Every refresh revokes the presented token and issues a new one in the same `family_id` chain.
+- **Reuse (theft) detection:** If a token that was already rotated (or revoked) is presented again, the entire `family_id` is revoked — every device/session sharing that login is forced to re-authenticate. This is the signal that a refresh token was stolen and replayed.
+- **Per-token expiry:** Configurable via `REFRESH_TOKEN_TTL_DAYS` (default 7 days); expired tokens are rejected the same as invalid ones.
 
 **Token Lifecycle:**
 - Access Token: 24 hours expiry (configurable)
-- Refresh Token: No expiry, but rotated on each use
+- Refresh Token: `REFRESH_TOKEN_TTL_DAYS` (default 7 days), rotated on each use, single-use (old token immediately invalid)
 
 **Error responses:**
 - `400 Bad Request` — Missing or invalid refresh_token in body.
-- `401 Unauthorized` — Invalid or expired refresh token (e.g. not found or already rotated).
+- `401 Unauthorized` — Invalid, expired, reused, or already-rotated refresh token (generic message; does not distinguish cause).
+
+---
+
+### 3b. Logout Flow (single session)
+
+**Purpose:** Revoke one refresh token (this device only) without affecting other sessions.
+
+**Endpoint:** `POST /api/v1/auth/logout`
+
+**Request:**
+```json
+{
+  "refresh_token": "a3d5e8f9b2c1d4e6f7a8b9c0d1e2f3a4..."
+}
+```
+
+**Response:** `200 OK` with `"Logout successful"`, always — even if the token was already revoked or never existed, so this endpoint cannot be used to probe token validity.
+
+---
+
+### 3c. Logout-All Flow (all sessions)
+
+**Purpose:** Revoke every refresh token for the authenticated user (e.g. "sign out everywhere" after a suspected compromise).
+
+**Endpoint:** `POST /api/v1/logout-all` (requires `Authorization: Bearer <access_token>`)
+
+**Response:** `200 OK` with `"Logged out from all devices successfully"`.
 
 ---
 
@@ -224,8 +252,8 @@ User → POST /api/v1/auth/register → AuthController → AuthService → Repos
 In production, the reset token should be sent by email instead of returned in the API response. The boilerplate supports this via a pluggable **EmailSender** interface:
 
 - **Interface:** `auth.EmailSender` with a single method `SendPasswordResetEmail(to, resetToken string) error`. Implement this in your project (e.g. SMTP, SendGrid, SES).
-- **Wire-up:** Pass your implementation into `auth.NewAuthService(userRepo, mailer)`. When `mailer` is non-nil, `ForgotPassword` sends the token via email and does not return it in the response. When `mailer` is nil (default), the token is returned in the response for development and testing.
-- **Default:** The boilerplate wires `NewAuthService(userRepo, nil)`, so by default the token is returned in the response. To enable production-style behaviour, implement `EmailSender` and inject it when constructing the auth service in your routes.
+- **Wire-up:** Pass your implementation into `auth.NewAuthService(userRepo, refreshTokenRepo, mailer)`. When `mailer` is non-nil, `ForgotPassword` sends the token via email and does not return it in the response. When `mailer` is nil (default), the token is returned in the response for development and testing.
+- **Default:** The boilerplate wires `NewAuthService(userRepo, refreshTokenRepo, nil)`, so by default the token is returned in the response. To enable production-style behaviour, implement `EmailSender` and inject it when constructing the auth service in your routes.
 
 ---
 
@@ -241,9 +269,6 @@ type User struct {
     Email                string     `gorm:"type:varchar(255);uniqueIndex;not null"`
     Password             string     `gorm:"type:varchar(255);not null"`
 
-    // Refresh token mechanism
-    RefreshToken         string     `gorm:"type:varchar(500);index"`
-
     // Password reset mechanism
     PasswordResetToken   string     `gorm:"type:varchar(255);index"`
     PasswordResetExpiry  *time.Time `gorm:"type:timestamp"`
@@ -254,10 +279,25 @@ type User struct {
 }
 ```
 
+**RefreshToken Model Fields** (dedicated table, not on `User`):
+```go
+type RefreshToken struct {
+    ID              uint       `gorm:"primaryKey"`
+    UserID          uint       `gorm:"not null;index"`
+    TokenHash       string     `gorm:"type:varchar(64);uniqueIndex;not null"` // SHA-256 hex; raw token never stored
+    FamilyID        string     `gorm:"type:varchar(64);not null;index"`       // rotation chain id, one per login session
+    ReplacedByHash  string     `gorm:"type:varchar(64)"`                      // set on rotation, links to successor token
+    RevokedAt       *time.Time
+    ExpiresAt       time.Time  `gorm:"not null"`
+    CreatedAt       time.Time
+}
+```
+
 **Database Indexes:**
-- `email`: Unique index for fast lookup and uniqueness
-- `refresh_token`: Index for fast refresh token validation
-- `password_reset_token`: Index for fast reset token validation
+- `users.email`: Unique index for fast lookup and uniqueness
+- `users.password_reset_token`: Index for fast reset token validation
+- `refresh_tokens.token_hash`: Unique index, used to look up a token on refresh/logout
+- `refresh_tokens.family_id`: Index, used to revoke a whole rotation chain on reuse detection or explicit revoke
 
 ---
 
@@ -277,8 +317,10 @@ type User struct {
 - **Type:** Cryptographically secure random hex string
 - **Length:** 64 characters (32 bytes)
 - **Generation:** `crypto/rand` package
-- **Storage:** Database (can be revoked)
-- **Rotation:** New token generated on each refresh
+- **Storage:** Only `SHA-256(raw)` is stored in `refresh_tokens.token_hash`; the raw value returned to the client is never persisted, so a database leak alone does not yield usable tokens
+- **Expiry:** `REFRESH_TOKEN_TTL_DAYS` (default 7 days) from issuance
+- **Rotation:** New token generated on each refresh, in the same `family_id`; the old token is marked revoked with `replaced_by_hash` pointing at the new one
+- **Reuse detection:** Presenting a revoked/already-rotated token revokes its entire `family_id`, invalidating every token in that login session
 
 #### Password Reset Token
 - **Type:** Cryptographically secure random hex string
@@ -300,8 +342,10 @@ type User struct {
 
 ✅ **Token Security:**
 - Cryptographically secure token generation
-- Token rotation on refresh
-- Refresh tokens stored in database (revocable)
+- Refresh tokens hashed at rest (SHA-256); raw value never stored
+- Token rotation on refresh, with reuse/theft detection (revokes whole session family)
+- Explicit revocation: logout (single session) and logout-all (all devices)
+- Per-token expiry (`REFRESH_TOKEN_TTL_DAYS`)
 - Access tokens with expiry
 
 ✅ **Rate Limiting:**
@@ -329,11 +373,6 @@ type User struct {
 - Use templates for professional emails
 - Track email delivery status
 
-🔐 **Token Blacklisting:**
-- Implement token blacklist for logout
-- Use Redis for fast blacklist lookup
-- Clear expired tokens periodically
-
 🔐 **Account Security:**
 - Login attempt tracking
 - Account lockout after failed attempts
@@ -354,7 +393,7 @@ type User struct {
 |-------|-------------|---------|
 | Email already exists | 409 Conflict | "Email already exists" |
 | Invalid credentials | 401 Unauthorized | "Invalid email or password" |
-| Invalid refresh token | 401 Unauthorized | "Invalid or expired refresh token" |
+| Invalid/expired/reused refresh token | 401 Unauthorized | "Invalid or expired refresh token" |
 | Invalid reset token | 400 Bad Request | "Invalid reset token" |
 | Expired reset token | 400 Bad Request | "Reset token has expired" |
 | Validation error | 400 Bad Request | Specific validation message |
@@ -411,6 +450,9 @@ Required variables in `.env`:
 # JWT Configuration
 JWT_SECRET=your-secret-key-min-32-characters  # Min 32 chars required
 
+# Refresh token lifetime in days (default 7)
+REFRESH_TOKEN_TTL_DAYS=7
+
 # Database
 MASTER_DB_HOST=localhost
 MASTER_DB_PORT=5432
@@ -446,12 +488,10 @@ go run main.go  # Applies pending SQL migrations automatically on startup (fail-
 make migrate-create NAME=add_something
 ```
 
-### Fields Added
+### Schema Changes
 
-New fields added to `users` table:
-- `refresh_token` (varchar 500)
-- `password_reset_token` (varchar 255)
-- `password_reset_expiry` (timestamp)
+- `users` table: `password_reset_token` (varchar 255), `password_reset_expiry` (timestamp). `refresh_token` was removed (moved to its own table, see below).
+- `refresh_tokens` table (added in `000004_create_refresh_tokens_table`): `token_hash`, `family_id`, `replaced_by_hash`, `revoked_at`, `expires_at` — see [Database Schema](#database-schema) above.
 
 ---
 
@@ -463,7 +503,9 @@ New fields added to `users` table:
 |----------|--------|---------------|-------------|
 | `/api/v1/auth/register` | POST | No | Register new user |
 | `/api/v1/auth/login` | POST | No | Authenticate user |
-| `/api/v1/auth/refresh` | POST | No | Refresh access token |
+| `/api/v1/auth/refresh` | POST | No | Refresh access token (rotates refresh token) |
+| `/api/v1/auth/logout` | POST | No (refresh token in body) | Revoke one refresh token (this session) |
+| `/api/v1/logout-all` | POST | Yes | Revoke all refresh tokens for the user (all devices) |
 | `/api/v1/auth/forgot-password` | POST | No | Request password reset |
 | `/api/v1/auth/reset-password` | POST | No | Complete password reset |
 
@@ -477,6 +519,17 @@ All auth endpoints use rate limiting (per IP, token bucket). Limits are read fro
 ---
 
 ## Changelog
+
+### Version 2.1 (2026-07-08)
+
+**Added:**
+- ✅ Refresh tokens moved to a dedicated `refresh_tokens` table, hashed (SHA-256) at rest
+- ✅ Per-token expiry (`REFRESH_TOKEN_TTL_DAYS`)
+- ✅ Rotation-family (`family_id`) reuse/theft detection — replaying a rotated token revokes the whole session
+- ✅ `POST /api/v1/auth/logout` (single session) and `POST /api/v1/logout-all` (all devices)
+
+**Fixed:**
+- 🔒 Refresh tokens were previously stored in plaintext on `users.refresh_token` with no expiry; a database leak gave permanent session hijack. Now hashed, time-limited, and revocable.
 
 ### Version 2.0 (2025-11-09)
 
