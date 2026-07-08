@@ -56,8 +56,3 @@ secrets/
 # Local-only / non-essential docs (do not commit)
 # =========================
 PROJECT_ANALYSIS.md
-
-# =========================
-# docker file .yml
-# =========================
-*.yml
