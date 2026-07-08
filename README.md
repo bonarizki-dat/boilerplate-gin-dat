@@ -371,7 +371,7 @@ Content-Type: application/json
 #### Refresh Token
 
 ```bash
-POST /auth/refresh
+POST /api/v1/auth/refresh
 Content-Type: application/json
 
 {
@@ -415,6 +415,40 @@ Content-Type: application/json
 
 **Note:** In production, the reset token should be sent via email, not in the response.
 
+#### Logout (single session)
+
+```bash
+POST /api/v1/auth/logout
+Content-Type: application/json
+
+{
+  "refresh_token": "a3d5e8f9b2c1d4e6f7a8b9c0d1e2f3a4..."
+}
+
+# Response (200 OK) - always, even if token was already revoked or never existed
+{
+  "success": true,
+  "message": "Logout successful",
+  "data": null,
+  "errors": null
+}
+```
+
+#### Logout All (all sessions)
+
+```bash
+POST /api/v1/logout-all
+Authorization: Bearer <your-jwt-token>
+
+# Response (200 OK)
+{
+  "success": true,
+  "message": "Logged out from all devices successfully",
+  "data": null,
+  "errors": null
+}
+```
+
 #### Reset Password
 
 ```bash
@@ -437,10 +471,10 @@ Content-Type: application/json
 
 ### Protected Routes
 
-Routes under `/api/*` require JWT authentication:
+Routes under `/api/v1/*` require JWT authentication:
 
 ```bash
-GET /api/profile
+GET /api/v1/profile
 Authorization: Bearer <your-jwt-token>
 
 # Response (200 OK)
@@ -458,7 +492,7 @@ Authorization: Bearer <your-jwt-token>
 
 - `GET /health` - Health check endpoint (returns database status, uptime)
 - `GET /metrics` - Metrics endpoint (request counters, error rates, uptime)
-- `GET /datatables` - DataTables example with pagination/search
+- `GET /api/v1/datatables` - DataTables example with pagination/search
 
 **Standard Response Format:**
 ```json
