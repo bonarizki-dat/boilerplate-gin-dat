@@ -1359,11 +1359,20 @@ func DeleteUser(c *gin.Context) {
 
 ```go
 ✅ CORRECT:
-// In router — middleware reads RATE_LIMIT_RPS and RATE_LIMIT_BURST from config
+// In index.go — applied once on the apiV1 group; all sub-groups (auth, example, ...) inherit it.
+// middleware reads RATE_LIMIT_RPS and RATE_LIMIT_BURST from config
+apiV1.Use(middlewares.RateLimitMiddleware())
+```
+
+```go
+❌ WRONG:
+// Do NOT call RateLimitMiddleware() again on a sub-group (e.g. authRoutes) — it shares the
+// same singleton limiter/key as apiV1, so this silently halves the effective burst capacity
+// for that sub-group instead of adding real protection.
 authRoutes.Use(middlewares.RateLimitMiddleware())
 ```
 
-Limits are read inside `RateLimitMiddleware()` from env vars `RATE_LIMIT_RPS` and `RATE_LIMIT_BURST` (defaults 100 rps, 200 burst if unset). See [CONFIGURATION.md](CONFIGURATION.md) — Environment Variables (Optional) and Example 3.
+Limits are read inside `RateLimitMiddleware()` from env vars `RATE_LIMIT_RPS` and `RATE_LIMIT_BURST` (defaults 100 rps, 200 burst if unset). See [CONFIGURATION.md](CONFIGURATION.md) — Environment Variables (Optional) and Example 3. If a route group genuinely needs a stricter limit (e.g. brute-force protection on login), use `RateLimitMiddlewareWithConfig(rps, burst)` with its own limiter instance instead of calling `RateLimitMiddleware()` twice.
 
 ---
 

@@ -618,7 +618,10 @@ func Migrate() {
 ```go
 // Rate limit is read from RATE_LIMIT_RPS / RATE_LIMIT_BURST in .env by RateLimitMiddleware().
 // Set different values per environment (e.g. RATE_LIMIT_RPS=10 in production, 100 in development).
-authRoutes.Use(middlewares.RateLimitMiddleware())
+// Apply once on the apiV1 group (index.go) — sub-groups like authRoutes inherit it automatically.
+// Calling RateLimitMiddleware() again on a sub-group reuses the same singleton limiter/key,
+// which halves the effective burst for that sub-group instead of adding protection.
+apiV1.Use(middlewares.RateLimitMiddleware())
 ```
 
 **4. Development-Only Debug Endpoints**
