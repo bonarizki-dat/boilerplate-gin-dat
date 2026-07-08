@@ -49,7 +49,11 @@ func RequestLogMiddleware() gin.HandlerFunc {
 		// Read and restore request body
 		var bodyBytes []byte
 		if c.Request.Body != nil {
-			bodyBytes, _ = io.ReadAll(c.Request.Body)
+			var readErr error
+			bodyBytes, readErr = io.ReadAll(c.Request.Body)
+			if readErr != nil {
+				logger.Warnf("failed to read request body for logging: %v", readErr)
+			}
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
 		bodyStr := string(bodyBytes)

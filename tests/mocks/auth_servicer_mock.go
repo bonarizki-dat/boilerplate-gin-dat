@@ -22,6 +22,7 @@ type MockAuthServicer struct {
 	ValidateTokenFunc  func(string) (uint, error)
 	LogoutFunc         func(context.Context, *dto.LogoutRequest) error
 	LogoutAllFunc      func(context.Context, uint) error
+	GetProfileFunc     func(context.Context, uint) (*dto.UserResponse, error)
 }
 
 func (m *MockAuthServicer) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
@@ -78,4 +79,11 @@ func (m *MockAuthServicer) LogoutAll(ctx context.Context, userID uint) error {
 		return m.LogoutAllFunc(ctx, userID)
 	}
 	return nil
+}
+
+func (m *MockAuthServicer) GetProfile(ctx context.Context, userID uint) (*dto.UserResponse, error) {
+	if m.GetProfileFunc != nil {
+		return m.GetProfileFunc(ctx, userID)
+	}
+	return nil, nil
 }

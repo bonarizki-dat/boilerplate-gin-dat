@@ -83,42 +83,9 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) (r
 
 	logger.Infof("user registered successfully: %s", user.Email)
 
-	// Generate JWT access token
-	accessToken, err := s.generateToken(user)
-	if err != nil {
-		logger.Errorf("failed to generate access token: %v", err)
-		logger.LogFinish(ctx, "AuthService.Register", err, start)
-		return nil, fmt.Errorf("failed to generate access token: %w", err)
-	}
-
-	// Issue a new refresh token rotation chain (new session/family) for this device
-	familyID, err := s.newFamilyID()
-	if err != nil {
-		logger.Errorf("failed to generate token family id: %v", err)
-		logger.LogFinish(ctx, "AuthService.Register", err, start)
-		return nil, fmt.Errorf("failed to generate token family id: %w", err)
-	}
-	refreshToken, err := s.issueRefreshToken(user.ID, familyID)
-	if err != nil {
-		logger.Errorf("failed to issue refresh token: %v", err)
-		logger.LogFinish(ctx, "AuthService.Register", err, start)
-		return nil, fmt.Errorf("failed to issue refresh token: %w", err)
-	}
-
-	// Build response
-	response := &dto.AuthResponse{
-		User: dto.UserResponse{
-			ID:    user.ID,
-			Name:  user.Name,
-			Email: user.Email,
-		},
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-	}
-
-	logger.LogFinish(ctx, "AuthService.Register", nil, start)
-	return response, nil
+	response, err := s.issueAuthResponse(user)
+	logger.LogFinish(ctx, "AuthService.Register", err, start)
+	return response, err
 }
 
 // Login authenticates a user with email and password.
@@ -149,30 +116,33 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 
 	logger.Infof("user logged in successfully: %s", user.Email)
 
-	// Generate JWT access token
+	response, err := s.issueAuthResponse(user)
+	logger.LogFinish(ctx, "AuthService.Login", err, start)
+	return response, err
+}
+
+// issueAuthResponse generates an access token and a new refresh token rotation
+// chain (new session/family) for user, and builds the resulting AuthResponse.
+// Shared by Register and Login since both start a new session identically.
+func (s *AuthService) issueAuthResponse(user *models.User) (*dto.AuthResponse, error) {
 	accessToken, err := s.generateToken(user)
 	if err != nil {
 		logger.Errorf("failed to generate access token: %v", err)
-		logger.LogFinish(ctx, "AuthService.Login", err, start)
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// Issue a new refresh token rotation chain (new session/family) for this device
 	familyID, err := s.newFamilyID()
 	if err != nil {
 		logger.Errorf("failed to generate token family id: %v", err)
-		logger.LogFinish(ctx, "AuthService.Login", err, start)
 		return nil, fmt.Errorf("failed to generate token family id: %w", err)
 	}
 	refreshToken, err := s.issueRefreshToken(user.ID, familyID)
 	if err != nil {
 		logger.Errorf("failed to issue refresh token: %v", err)
-		logger.LogFinish(ctx, "AuthService.Login", err, start)
 		return nil, fmt.Errorf("failed to issue refresh token: %w", err)
 	}
 
-	// Build response
-	response := &dto.AuthResponse{
+	return &dto.AuthResponse{
 		User: dto.UserResponse{
 			ID:    user.ID,
 			Name:  user.Name,
@@ -181,10 +151,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (resp *d
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
-	}
-
-	logger.LogFinish(ctx, "AuthService.Login", nil, start)
-	return response, nil
+	}, nil
 }
 
 // ValidateToken validates a JWT token and returns the user ID.
@@ -222,6 +189,27 @@ func (s *AuthService) ValidateToken(tokenString string) (uint, error) {
 	return 0, errors.New("invalid token")
 }
 
+// GetProfile returns the current user's profile data.
+//
+// Returns ErrUserNotFound if userID doesn't exist (e.g. deleted after token was issued).
+func (s *AuthService) GetProfile(ctx context.Context, userID uint) (*dto.UserResponse, error) {
+	ctx, start := logger.LogStart(ctx, "AuthService.GetProfile")
+
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		logger.Errorf("failed to get user for profile: %v", err)
+		logger.LogFinish(ctx, "AuthService.GetProfile", err, start)
+		return nil, fmt.Errorf("failed to get profile: %w", err)
+	}
+	if user == nil {
+		logger.LogFinish(ctx, "AuthService.GetProfile", ErrUserNotFound, start)
+		return nil, ErrUserNotFound
+	}
+
+	logger.LogFinish(ctx, "AuthService.GetProfile", nil, start)
+	return &dto.UserResponse{ID: user.ID, Name: user.Name, Email: user.Email}, nil
+}
+
 // Private helper methods
 
 // jwtSecret returns the JWT secret from config. Empty if config not loaded or not set.
@@ -246,10 +234,22 @@ func (s *AuthService) verifyPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
+// accessTokenTTL returns the configured JWT access token lifetime, defaulting to 15 minutes.
+//
+// Kept short because access tokens are stateless and cannot be revoked; logout/logout-all
+// only revoke refresh tokens, so a short TTL bounds how long an already-issued access token
+// keeps working after the user logs out.
+func (s *AuthService) accessTokenTTL() time.Duration {
+	if c := config.Get(); c != nil && c.Server.AccessTokenTTLMinutes > 0 {
+		return time.Duration(c.Server.AccessTokenTTLMinutes) * time.Minute
+	}
+	return 15 * time.Minute
+}
+
 // generateToken creates a JWT token for authenticated user.
 //
 // Token contains user ID and email in claims.
-// Expiry time is 24 hours from creation.
+// Expiry is configurable via accessTokenTTL() (default 15 minutes).
 func (s *AuthService) generateToken(user *models.User) (string, error) {
 	secret := s.jwtSecret()
 	if secret == "" {
@@ -260,7 +260,7 @@ func (s *AuthService) generateToken(user *models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"email":   user.Email,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hours expiry
+		"exp":     time.Now().Add(s.accessTokenTTL()).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 

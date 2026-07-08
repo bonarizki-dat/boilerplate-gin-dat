@@ -262,6 +262,63 @@ func TestRegisterResponseStructure(t *testing.T) {
 	}
 }
 
+// TestProfileEndpoint tests the Profile HTTP handler with mocked AuthServicer.
+func TestProfileEndpoint(t *testing.T) {
+	tests := []struct {
+		name           string
+		mock           *mocks.MockAuthServicer
+		expectedStatus int
+		checkResponse  func(*testing.T, *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Existing user returns real profile data",
+			mock: &mocks.MockAuthServicer{
+				GetProfileFunc: func(_ context.Context, userID uint) (*dto.UserResponse, error) {
+					return &dto.UserResponse{ID: userID, Name: "Test User", Email: "test@example.com"}, nil
+				},
+			},
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				var response map[string]interface{}
+				err := json.Unmarshal(w.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				data := response["data"].(map[string]interface{})
+				assert.Equal(t, "Test User", data["name"])
+				assert.Equal(t, "test@example.com", data["email"])
+			},
+		},
+		{
+			name: "User not found returns 404",
+			mock: &mocks.MockAuthServicer{
+				GetProfileFunc: func(_ context.Context, _ uint) (*dto.UserResponse, error) {
+					return nil, auth.ErrUserNotFound
+				},
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := setupAuthControllerWithMock(tt.mock)
+			router := setupTestRouter()
+			router.GET("/profile", func(c *gin.Context) {
+				c.Set("user_id", uint(1))
+				ctrl.Profile(c)
+			})
+
+			req, _ := http.NewRequest(http.MethodGet, "/profile", nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatus, w.Code, "response status")
+			if tt.checkResponse != nil {
+				tt.checkResponse(t, w)
+			}
+		})
+	}
+}
+
 // Example: Benchmark test for controller
 func BenchmarkRegisterEndpoint(b *testing.B) {
 	router := setupTestRouter()

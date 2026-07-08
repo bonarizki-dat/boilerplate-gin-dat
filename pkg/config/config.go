@@ -81,6 +81,10 @@ func SetupConfig() error {
 	if refreshTokenTTLDays <= 0 {
 		refreshTokenTTLDays = 7
 	}
+	accessTokenTTLMinutes := viper.GetInt("ACCESS_TOKEN_TTL_MINUTES")
+	if accessTokenTTLMinutes <= 0 {
+		accessTokenTTLMinutes = 15
+	}
 	masterSsl := viper.GetString("MASTER_SSL_MODE")
 	if masterSsl == "" {
 		masterSsl = "disable"
@@ -104,6 +108,7 @@ func SetupConfig() error {
 			RequestTimeoutSeconds:  requestTimeout,
 			ShutdownTimeoutSeconds: shutdownTimeout,
 			RefreshTokenTTLDays:    refreshTokenTTLDays,
+			AccessTokenTTLMinutes:  accessTokenTTLMinutes,
 			RateLimitRPS:           rps,
 			RateLimitBurst:         burst,
 			RateLimitUseUser:       viper.GetBool("RATE_LIMIT_USE_USER"),

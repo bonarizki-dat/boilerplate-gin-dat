@@ -24,6 +24,7 @@ func setTestConfig(t *testing.T) {
 	cfg := &config.Configuration{}
 	cfg.Server.JWTSecret = testJWTSecret
 	cfg.Server.RefreshTokenTTLDays = 7
+	cfg.Server.AccessTokenTTLMinutes = 15
 	config.SetForTest(cfg)
 }
 
@@ -365,18 +366,19 @@ func TestResetPassword(t *testing.T) {
 	validUser := &models.User{
 		ID:                  1,
 		Email:               "user@example.com",
-		PasswordResetToken:  "valid-reset-token",
+		PasswordResetToken:  testHashToken("valid-reset-token"),
 		PasswordResetExpiry: &futureExpiry,
 	}
 	expiredUser := &models.User{
 		ID:                  2,
 		Email:               "expired@example.com",
-		PasswordResetToken:  "expired-token",
+		PasswordResetToken:  testHashToken("expired-token"),
 		PasswordResetExpiry: &pastExpiry,
 	}
 	mockRepo := mocks.NewMockUserRepository()
-	mockRepo.SetUserByPasswordResetToken("valid-reset-token", validUser)
-	mockRepo.SetUserByPasswordResetToken("expired-token", expiredUser)
+	// Mock is keyed by the same hash the service looks up by (raw token is never stored).
+	mockRepo.SetUserByPasswordResetToken(testHashToken("valid-reset-token"), validUser)
+	mockRepo.SetUserByPasswordResetToken(testHashToken("expired-token"), expiredUser)
 	service := newAuthServiceWithRepo(mockRepo)
 
 	tests := []struct {

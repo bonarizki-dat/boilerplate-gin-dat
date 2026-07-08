@@ -276,12 +276,25 @@ func (ctrl *AuthController) LogoutAll(c *gin.Context) {
 
 // Profile returns the current authenticated user's profile.
 //
-// GET /api/profile (requires JWT)
-// Response: user_id from context in standard response format
+// GET /api/v1/profile (requires JWT)
+// Response: UserResponse (id, name, email) in standard response format
 func (ctrl *AuthController) Profile(c *gin.Context) {
 	ctx, start := logger.LogStart(c.Request.Context(), "AuthController.Profile")
 
 	userID := c.GetUint("user_id")
+	profile, err := ctrl.service.GetProfile(ctx, userID)
+	if err != nil {
+		if apiErr := authErrToAPIError(err); apiErr != nil {
+			logger.LogFinish(ctx, "AuthController.Profile", err, start)
+			utils.RespondWithAPIError(c, apiErr)
+			return
+		}
+		logger.Errorf("get profile failed: %v", err)
+		logger.LogFinish(ctx, "AuthController.Profile", err, start)
+		utils.InternalServerError(c, err, "Failed to retrieve profile")
+		return
+	}
+
 	logger.LogFinish(ctx, "AuthController.Profile", nil, start)
-	utils.Ok(c, gin.H{"user_id": userID}, "Profile retrieved successfully")
+	utils.Ok(c, profile, "Profile retrieved successfully")
 }

@@ -167,9 +167,10 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 		return "", fmt.Errorf("failed to generate reset token: %w", err)
 	}
 
-	// Set token expiry (15 minutes from now)
+	// Set token expiry (15 minutes from now). Only the hash is persisted;
+	// the raw token is never stored, mirroring refresh token handling.
 	expiry := time.Now().Add(15 * time.Minute)
-	user.PasswordResetToken = resetToken
+	user.PasswordResetToken = hashToken(resetToken)
 	user.PasswordResetExpiry = &expiry
 
 	// Save to database
@@ -201,7 +202,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, req *dto.ForgotPasswor
 func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordRequest) (err error) {
 	ctx, start := logger.LogStart(ctx, "AuthService.ResetPassword")
 
-	user, err := s.userRepo.GetUserByPasswordResetToken(req.Token)
+	user, err := s.userRepo.GetUserByPasswordResetToken(hashToken(req.Token))
 	if err != nil {
 		logger.Errorf("failed to get user by reset token: %v", err)
 		logger.LogFinish(ctx, "AuthService.ResetPassword", err, start)

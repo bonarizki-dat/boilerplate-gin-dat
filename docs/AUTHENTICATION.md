@@ -12,7 +12,7 @@ This boilerplate provides a complete authentication system with the following fe
 
 - ✅ User Registration
 - ✅ User Login
-- ✅ JWT Access Token (24 hours expiry)
+- ✅ JWT Access Token (configurable expiry via `ACCESS_TOKEN_TTL_MINUTES`, default 15 minutes)
 - ✅ Refresh Token Mechanism (hashed at rest, per-token expiry, rotation, reuse/theft detection)
 - ✅ Logout (single session) and Logout-All (all devices)
 - ✅ Password Reset Flow
@@ -133,7 +133,7 @@ User → POST /api/v1/auth/register → AuthController → AuthService → Repos
 - **Per-token expiry:** Configurable via `REFRESH_TOKEN_TTL_DAYS` (default 7 days); expired tokens are rejected the same as invalid ones.
 
 **Token Lifecycle:**
-- Access Token: 24 hours expiry (configurable)
+- Access Token: `ACCESS_TOKEN_TTL_MINUTES` (default 15 minutes). Kept short because it is a stateless JWT and cannot be revoked — logout/logout-all only revoke refresh tokens, so this TTL bounds how long an already-issued access token keeps working after the user logs out.
 - Refresh Token: `REFRESH_TOKEN_TTL_DAYS` (default 7 days), rotated on each use, single-use (old token immediately invalid)
 
 **Error responses:**
@@ -199,7 +199,7 @@ User → POST /api/v1/auth/register → AuthController → AuthService → Repos
 - Token expiry: 15 minutes
 - Generic success message (don't reveal if email exists)
 - Rate limiting applied
-- Token stored in database with expiry timestamp
+- Only `SHA-256(raw)` is stored in `users.password_reset_token`; the raw token is never persisted, so a database leak alone does not yield a usable token
 
 **Error responses:**
 - `400 Bad Request` — Missing or invalid email.
@@ -308,7 +308,7 @@ type RefreshToken struct {
 - **Claims:**
   - `user_id`: User's database ID
   - `email`: User's email
-  - `exp`: Expiry timestamp (24 hours)
+  - `exp`: Expiry timestamp (`ACCESS_TOKEN_TTL_MINUTES`, default 15 minutes)
   - `iat`: Issued at timestamp
 - **Secret:** Environment variable `JWT_SECRET` (min 32 chars)
 - **Storage:** Client-side only (LocalStorage/Memory)
@@ -326,6 +326,7 @@ type RefreshToken struct {
 - **Type:** Cryptographically secure random hex string
 - **Length:** 64 characters (32 bytes)
 - **Generation:** `crypto/rand` package
+- **Storage:** Only `SHA-256(raw)` is stored in `users.password_reset_token`; the raw value sent to the client (or emailed) is never persisted
 - **Expiry:** 15 minutes from generation
 - **Single Use:** Cleared after successful password reset
 

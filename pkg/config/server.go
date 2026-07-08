@@ -20,6 +20,7 @@ type ServerConfiguration struct {
 	RequestTimeoutSeconds  int    // http.Server read/write timeout
 	ShutdownTimeoutSeconds int    // graceful shutdown max wait
 	RefreshTokenTTLDays    int    // refresh token lifetime before it must be re-issued via login
+	AccessTokenTTLMinutes  int    // JWT access token lifetime; kept short since it cannot be revoked
 	// Rate limit (used by middlewares)
 	RateLimitRPS     int
 	RateLimitBurst   int

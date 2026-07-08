@@ -14,7 +14,7 @@ type User struct {
 	Email    string `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
 	Password string `json:"-" gorm:"type:varchar(255);not null"` // Never expose in JSON
 
-	// Password reset token and expiry for forgot password flow
+	// PasswordResetToken stores the SHA-256 hex digest of the reset token, never the raw value.
 	PasswordResetToken  string     `json:"-" gorm:"type:varchar(255);index"`
 	PasswordResetExpiry *time.Time `json:"-" gorm:"type:timestamp"`
 
